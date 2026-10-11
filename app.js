@@ -38,12 +38,21 @@ function toast(msg) {
 }
 
 const API_BASE = String(window.__FM_API_BASE || '').replace(/\/$/, '');
+const TOKEN_KEY = 'fm_token';
+const getToken = () => { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } };
+const setToken = (t) => { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch (e) { /* ignore */ } };
+const authHeaders = (base) => {
+  const h = Object.assign({}, base);
+  const t = getToken();
+  if (t) h.Authorization = 'Bearer ' + t;
+  return h;
+};
 const api = {
   async get(u) {
-    const r = await fetch(API_BASE + u, { credentials: 'include' });
+    const r = await fetch(API_BASE + u, { headers: authHeaders() });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
-      if (r.status === 401) showLogin();
+      if (r.status === 401) { setToken(null); showLogin(); }
       throw new Error(j.error || r.status);
     }
     return j;
@@ -51,13 +60,12 @@ const api = {
   async send(m, u, b) {
     const r = await fetch(API_BASE + u, {
       method: m,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(b ? { 'Content-Type': 'application/json' } : {}),
       body: b ? JSON.stringify(b) : undefined
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
-      if (r.status === 401) showLogin();
+      if (r.status === 401) { setToken(null); showLogin(); }
       const err = new Error(j.error || r.status);
       err.status = r.status;
       throw err;
@@ -94,6 +102,7 @@ function initLoginForm() {
         username: document.getElementById('login-user').value,
         password: document.getElementById('login-pass').value
       });
+      setToken(r.token);
       currentUser = r.user;
       document.getElementById('login-pass').value = '';
       hideLogin();
@@ -107,11 +116,15 @@ function initLoginForm() {
 }
 
 // Гарантирует авторизацию: возвращает пользователя, показав форму входа при необходимости.
+// Гарантирует авторизацию: возвращает пользователя, показав форму входа при необходимости.
 async function ensureAuth() {
-  try {
-    const r = await api.get('/api/auth/me');
-    if (r && r.user) { currentUser = r.user; return r.user; }
-  } catch (e) { /* не авторизован */ }
+  if (getToken()) {
+    try {
+      const r = await api.get('/api/auth/me');
+      if (r && r.user) { currentUser = r.user; return r.user; }
+    } catch (e) { /* не авторизован */ }
+    setToken(null);
+  }
   showLogin();
   return new Promise((resolve) => { loginResolve = resolve; });
 }
@@ -133,6 +146,7 @@ function updateUserBox() {
     logout.__wired = true;
     logout.addEventListener('click', async () => {
       try { await api.send('POST', '/api/auth/logout'); } catch (e) { /* ignore */ }
+      setToken(null);
       window.location.reload();
     });
   }
