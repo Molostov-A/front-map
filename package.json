@@ -1,0 +1,9 @@
+{
+  "name": "front-map-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "front-map client (MapLibre GL, vanilla JS). Deployed statically (GitHub Pages).",
+  "scripts": {
+    "test": "node tests/arrow.test.mjs && node tests/basemap.test.mjs && node tests/measure.test.mjs"
+  }
+}

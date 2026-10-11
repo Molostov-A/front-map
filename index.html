@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>front-map</title>
+<link rel="icon" href="data:,">
+<link href="./vendor/maplibre-gl.css" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #14161a; color: #e6e6e6; overflow: hidden; }
+  #app { position: relative; display: flex; height: 100%; }
+
+  .fpanel {
+    position: absolute; z-index: 6; width: 280px; max-height: calc(100% - 24px);
+    background: #1b1e24; border: 1px solid #2a2f38; border-radius: 10px;
+    box-shadow: 0 10px 40px #000c; display: flex; flex-direction: column;
+  }
+  .fpanel.hidden { display: none; }
+  .fpanel[data-side="left"] { left: 12px; }
+  .fpanel[data-side="right"] { right: 12px; }
+  .fpanel.dragging { opacity: .9; }
+  .fpanel-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 8px 10px; cursor: move; user-select: none; border-bottom: 1px solid #2a2f38;
+  }
+  .fpanel.collapsed .fpanel-head { border-bottom: none; }
+  .fpanel-title { font-weight: 600; font-size: 13px; }
+  .fpanel-actions { display: flex; gap: 4px; }
+  .fpanel-body { overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .fpanel.collapsed .fpanel-body { display: none; }
+  #pnl-layers .fpanel-body { padding: 0; gap: 0; }
+
+  #layer-list { overflow-y: auto; }
+  .layer-item {
+    padding: 9px 12px; border-bottom: 1px solid #23272f; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px;
+  }
+  .layer-item.active { background: #232833; }
+  .layer-item .swatch { width: 12px; height: 12px; border-radius: 3px; flex: 0 0 auto; }
+  .layer-item .lmain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .layer-item .lrow1 { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .layer-item .lname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .layer-item .lmeta { color: #8a93a2; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .layer-item.hidden-layer .lname { opacity: .45; text-decoration: line-through; }
+  .icon-btn {
+    background: #262b34; border: 1px solid #363d49; color: #cfd6e0; border-radius: 5px;
+    width: 26px; height: 26px; cursor: pointer; font-size: 13px; line-height: 1; padding: 0;
+  }
+  .icon-btn:hover { background: #323946; }
+  .icon-btn.danger:hover { background: #5a2530; border-color: #7a3040; }
+
+  #sidebar-foot { padding: 10px 12px; border-top: 1px solid #2a2f38; font-size: 12px; color: #8a93a2; }
+
+  .panel-style {
+    display: none; border-top: 1px solid #2a2f38; padding: 10px 12px;
+    flex-direction: column; gap: 6px; background: #1b1e24; font-size: 12px;
+    max-height: 60vh; overflow-y: auto;
+  }
+  .panel-style.show { display: flex; }
+  .fpanel-body .panel-style { border-top: none; padding: 0; max-height: none; overflow: visible; background: transparent; }
+
+  #settings-menu {
+    position: absolute; top: 56px; left: 12px; z-index: 9; min-width: 190px;
+    background: #1b1e24; border: 1px solid #2a2f38; border-radius: 10px; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 40px #000c; font-size: 12px;
+  }
+  #settings-menu.hidden { display: none; }
+  #settings-menu label { display: flex; align-items: center; gap: 8px; color: #cfd6e0; cursor: pointer; }
+  #settings-menu input[type=checkbox] { accent-color: #2d5bd1; }
+  .panel-style .as-title { font-size: 10px; color: #8a93a2; text-transform: uppercase; letter-spacing: .05em; margin-top: 4px; }
+  .panel-style .as-row { display: flex; align-items: center; gap: 8px; }
+  .panel-style .as-row label { color: #8a93a2; min-width: 74px; }
+  .panel-style .as-row input[type=color] {
+    width: 34px; height: 24px; padding: 1px; border: 1px solid #363d49; border-radius: 4px; background: #14161a;
+  }
+  .panel-style .as-row input[type=text] {
+    flex: 1; min-width: 0; padding: 3px 6px; background: #14161a; border: 1px solid #363d49;
+    color: #e6e6e6; border-radius: 4px; font-size: 12px;
+  }
+  .panel-style .as-row input[type=number] {
+    width: 60px; padding: 3px 6px; background: #14161a; border: 1px solid #363d49;
+    color: #e6e6e6; border-radius: 4px; font-size: 12px;
+  }
+  .panel-style .as-row input[type=range] { flex: 1; min-width: 0; accent-color: #2d5bd1; }
+  .panel-style .as-row input[type=checkbox] { accent-color: #2d5bd1; }
+  .panel-style .as-row select {
+    flex: 1; min-width: 0; padding: 3px 6px; background: #14161a; border: 1px solid #363d49;
+    color: #e6e6e6; border-radius: 4px; font-size: 12px;
+  }
+  .panel-style .as-val { color: #9fb4ff; min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+  .panel-style .as-val.measure-val { min-width: auto; color: #8fe3b0; font-weight: 600; }
+  .panel-style .as-seg { display: flex; flex: 1; }
+  .panel-style .as-seg button {
+    flex: 1; background: #262b34; border: 1px solid #363d49; color: #cfd6e0;
+    padding: 4px 2px; cursor: pointer; font-size: 11px;
+  }
+  .panel-style .as-seg button:first-child { border-radius: 5px 0 0 5px; }
+  .panel-style .as-seg button:last-child { border-radius: 0 5px 5px 0; }
+  .panel-style .as-seg button + button { border-left: none; }
+  .panel-style .as-seg button.active { background: #2d5bd1; border-color: #3d6be0; color: #fff; }
+  .panel-style .as-checks { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+  .panel-style .as-checks label { display: flex; align-items: center; gap: 4px; color: #cfd6e0; min-width: 0; }
+  .panel-style .as-btns { display: flex; gap: 6px; margin-top: 8px; }
+  .panel-style .as-btns button {
+    flex: 1; background: #262b34; border: 1px solid #363d49; color: #cfd6e0;
+    border-radius: 6px; padding: 6px 8px; cursor: pointer; font-size: 12px;
+  }
+  .panel-style .as-btns button:hover { background: #323946; }
+  .panel-style .as-btns button.on { background: #2d5bd1; border-color: #3d6be0; color: #fff; }
+  .panel-style .as-btns button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .fm-text-marker {
+    position: absolute; top: 0; left: 0; will-change: transform;
+    white-space: pre; user-select: none; line-height: 1.25;
+  }
+  .fm-text-marker.selected {
+    outline: 2px solid #4d8dff; outline-offset: 3px; border-radius: 3px;
+  }
+
+  .fm-area-label {
+    position: absolute; top: 0; left: 0; will-change: transform;
+    white-space: nowrap; user-select: none; pointer-events: none;
+    font-size: 12px; font-weight: 600; color: #eaf0ff;
+    background: #1b1e24cc; border: 1px solid #3a4250; border-radius: 5px;
+    padding: 2px 6px; box-shadow: 0 2px 8px #0006;
+  }
+
+  #map { flex: 1; position: relative; }
+
+  #ruler-layer {
+    position: absolute; inset: 0; z-index: 1;
+    pointer-events: none; width: 100%; height: 100%;
+  }
+
+  #toolbar {
+    position: absolute; top: 12px; left: 12px; z-index: 4;
+    display: flex; gap: 6px; background: #1b1e24ee; padding: 6px; border: 1px solid #2a2f38; border-radius: 8px;
+    box-shadow: 0 4px 16px #0008;
+  }
+  #toolbar button {
+    background: #262b34; border: 1px solid #363d49; color: #cfd6e0; border-radius: 6px;
+    padding: 6px 10px; cursor: pointer; font-size: 12px; white-space: nowrap;
+  }
+  #toolbar button:hover { background: #323946; }
+  #toolbar button.on { background: #2d5bd1; border-color: #3d6be0; color: #fff; }
+  #toolbar .sep { width: 1px; background: #363d49; margin: 2px 3px; }
+  #toolbar select {
+    background: #262b34; border: 1px solid #363d49; color: #cfd6e0; border-radius: 6px;
+    padding: 5px 6px; cursor: pointer; font-size: 12px; max-width: 190px;
+  }
+  #toolbar select:hover { background: #323946; }
+
+  #hint {
+    position: absolute; bottom: 12px; left: 12px; z-index: 4; display: none;
+    background: #1b1e24ee; border: 1px solid #2a2f38; padding: 7px 11px; border-radius: 6px;
+    font-size: 12px; color: #9fb4ff; box-shadow: 0 4px 16px #0008;
+  }
+
+  #timeline {
+    position: absolute; top: 12px; right: 52px; z-index: 4;
+    background: #1b1e24ee; border: 1px solid #2a2f38; border-radius: 8px; padding: 6px;
+    display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 16px #0008;
+  }
+  #tl-date { font-size: 13px; font-variant-numeric: tabular-nums; min-width: 84px; text-align: center; cursor: pointer; }
+  #tl-now { width: auto; padding: 0 8px; white-space: nowrap; }
+  #tl-now.hist { background: #5a4413; border-color: #7a5d1a; color: #ffd479; }
+  #tl-cal { white-space: nowrap; }
+
+  #calendar {
+    position: absolute; top: 52px; right: 52px; z-index: 12; width: 264px;
+    background: #1b1e24; border: 1px solid #2a2f38; border-radius: 10px; padding: 10px;
+    box-shadow: 0 10px 40px #000c;
+  }
+  #calendar.hidden { display: none; }
+  #cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  #cal-head .cal-title { font-size: 13px; text-transform: capitalize; }
+  #cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  #cal-grid .cal-dow { text-align: center; font-size: 11px; color: #8a93a2; padding: 4px 0; }
+  #cal-grid button {
+    aspect-ratio: 1; border: 1px solid transparent; background: #262b34; color: #cfd6e0;
+    border-radius: 5px; cursor: pointer; font-size: 12px; padding: 0;
+  }
+  #cal-grid button:hover { background: #323946; }
+  #cal-grid button.other { opacity: .4; }
+  #cal-grid button.today { border-color: #3d6be0; }
+  #cal-grid button.sel { background: #2d5bd1; border-color: #3d6be0; color: #fff; }
+
+  .panel-style input[type=date] {
+    padding: 3px 6px; background: #14161a; border: 1px solid #363d49; color: #e6e6e6;
+    border-radius: 4px; font-size: 12px; flex: 1; min-width: 0;
+  }
+  #dates-changes .dates-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .del-hint { font-size: 13px; color: #cfd6e0; margin: 0 0 8px; line-height: 1.45; }
+  .del-date { font-size: 12px; color: #8a93a2; }
+
+  .maplibregl-ctrl-group button { background-color: #1b1e24; }
+  .maplibregl-ctrl-attrib { font-size: 10px; }
+
+  .modal-back {
+    position: fixed; inset: 0; background: #000a; z-index: 20; display: none;
+    align-items: center; justify-content: center;
+  }
+  .modal {
+    background: #1b1e24; border: 1px solid #2a2f38; border-radius: 10px; padding: 18px;
+    width: 340px; box-shadow: 0 10px 40px #000c;
+  }
+  .modal h3 { margin: 0 0 12px; font-size: 15px; }
+  .modal label { display: block; font-size: 12px; color: #8a93a2; margin: 10px 0 4px; }
+  .modal input[type=text] {
+    width: 100%; padding: 7px 9px; background: #14161a; border: 1px solid #363d49;
+    color: #e6e6e6; border-radius: 6px; font-size: 13px;
+  }
+  .modal .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .modal button {
+    padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    background: #262b34; border: 1px solid #363d49; color: #cfd6e0;
+  }
+  .modal button.primary { background: #2d5bd1; border-color: #3d6be0; color: #fff; }
+  .modal button:hover { filter: brightness(1.15); }
+
+  #toast {
+    position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
+    background: #2b3140; border: 1px solid #414a5c; color: #e6e6e6;
+    padding: 8px 16px; border-radius: 7px; font-size: 13px; z-index: 30;
+    opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ---- auth ---- */
+  #login-back {
+    position: fixed; inset: 0; z-index: 1000; display: none;
+    align-items: center; justify-content: center; background: #0f1115ee;
+  }
+  #login-back.show { display: flex; }
+  #login-card {
+    width: 320px; background: #1b1e24; border: 1px solid #2a2f38; border-radius: 12px;
+    box-shadow: 0 20px 60px #000d; padding: 20px; display: flex; flex-direction: column; gap: 10px;
+  }
+  #login-card h1 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+  #login-card label { font-size: 12px; color: #9aa3b2; }
+  #login-card input {
+    width: 100%; padding: 8px 10px; border-radius: 7px; border: 1px solid #2f3641;
+    background: #12151a; color: #e6e6e6; font-size: 14px;
+  }
+  #login-card button {
+    margin-top: 6px; padding: 9px 12px; border-radius: 8px; border: none; cursor: pointer;
+    background: #3b6cff; color: #fff; font-size: 14px; font-weight: 600;
+  }
+  #login-card button:disabled { opacity: .6; cursor: default; }
+  #login-error { color: #ff6b6b; font-size: 12px; min-height: 14px; }
+  #user-box { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  #user-box .ub-name { color: #cfd6e2; }
+  .ub-role { color: #8a93a2; }
+
+  /* ---- users modal ---- */
+  #users-back {
+    position: fixed; inset: 0; z-index: 1001; display: none;
+    align-items: center; justify-content: center; background: #0f1115cc;
+  }
+  #users-back.show { display: flex; }
+  #users-card {
+    width: 380px; max-height: 80vh; overflow-y: auto; background: #1b1e24;
+    border: 1px solid #2a2f38; border-radius: 12px; box-shadow: 0 20px 60px #000d;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  #users-card .users-head { display: flex; justify-content: space-between; align-items: center; }
+  #users-list { display: flex; flex-direction: column; gap: 6px; }
+  .users-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 8px; background: #12151a; border-radius: 7px; }
+  .users-row .u-nm { flex: 1; }
+  .users-row .u-rl { color: #8a93a2; font-size: 11px; }
+  #users-add { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  #users-add input, #users-add select {
+    padding: 7px 8px; border-radius: 6px; border: 1px solid #2f3641; background: #12151a; color: #e6e6e6; font-size: 13px;
+  }
+  #users-add button { grid-column: span 2; padding: 8px; border: none; border-radius: 7px; background: #3b6cff; color: #fff; font-weight: 600; cursor: pointer; }
+  #users-error { color: #ff6b6b; font-size: 12px; min-height: 14px; }
+</style>
+</head>
+<body>
+<div id="login-back">
+  <form id="login-card" autocomplete="on">
+    <h1>Вход в front-map</h1>
+    <label for="login-user">Логин</label>
+    <input id="login-user" name="username" type="text" autocomplete="username" required>
+    <label for="login-pass">Пароль</label>
+    <input id="login-pass" name="password" type="password" autocomplete="current-password" required>
+    <div id="login-error"></div>
+    <button id="login-submit" type="submit">Войти</button>
+  </form>
+</div>
+<div id="users-back">
+  <div id="users-card">
+    <div class="users-head"><b>Пользователи</b><button class="icon-btn" id="users-close" title="Закрыть">✕</button></div>
+    <div id="users-list"></div>
+    <form id="users-add">
+      <input id="users-new-name" placeholder="логин" required>
+      <input id="users-new-pass" placeholder="пароль" type="password" required>
+      <select id="users-new-role">
+        <option value="viewer">viewer</option>
+        <option value="editor" selected>editor</option>
+        <option value="admin">admin</option>
+      </select>
+      <button type="submit">Добавить</button>
+    </form>
+    <div id="users-error"></div>
+  </div>
+</div>
+<div id="app">
+  <div class="fpanel" id="pnl-layers">
+    <div class="fpanel-head">
+      <span class="fpanel-title">Слои</span>
+      <div class="fpanel-actions">
+        <button class="icon-btn" id="add-layer" title="Новый слой">+</button>
+        <button class="icon-btn fp-collapse" title="Свернуть">▾</button>
+      </div>
+    </div>
+    <div class="fpanel-body">
+      <div id="layer-list"></div>
+      <div id="sidebar-foot">Активный слой: <b id="active-layer-name">—</b></div>
+    </div>
+  </div>
+
+  <div class="fpanel" id="pnl-props">
+    <div class="fpanel-head">
+      <span class="fpanel-title">Свойства</span>
+      <div class="fpanel-actions"><button class="icon-btn fp-collapse" title="Свернуть">▾</button></div>
+    </div>
+    <div class="fpanel-body">
+    <div id="arrow-style" class="panel-style">
+      <div class="as-title">Заливка</div>
+      <div class="as-row">
+        <label for="arrow-color">Цвет</label>
+        <input type="color" id="arrow-color" value="#7f8cff">
+        <span class="as-val" id="arrow-color-val">#7f8cff</span>
+      </div>
+      <div class="as-row">
+        <label for="arrow-opacity">Прозр.</label>
+        <input type="range" id="arrow-opacity" min="10" max="100" value="95">
+        <span class="as-val" id="arrow-opacity-val">95%</span>
+      </div>
+
+      <div class="as-title">Ствол</div>
+      <div class="as-row">
+        <label for="arrow-width">Основание, м</label>
+        <input type="number" id="arrow-width" value="600" min="1" max="200000" step="10">
+        <span class="as-val" id="arrow-width-val">600 м</span>
+      </div>
+      <div class="as-row">
+        <label>Режим</label>
+        <div class="as-seg" id="arrow-stem-mode">
+          <button data-mode="sharp" class="active">Прямые</button>
+          <button data-mode="smooth">Сглаж.</button>
+        </div>
+      </div>
+      <div class="as-row">
+        <label for="arrow-smooth">Сглаживание</label>
+        <input type="range" id="arrow-smooth" min="0" max="100" value="60" disabled>
+        <span class="as-val" id="arrow-smooth-val">0.60</span>
+      </div>
+      <div class="as-row">
+        <label><input type="checkbox" id="arrow-autosmooth" checked> Авто-ручки</label>
+      </div>
+
+      <div class="as-title">Наконечник</div>
+      <div class="as-row">
+        <label for="arrow-head-width">Основание, м</label>
+        <input type="number" id="arrow-head-width" value="300" min="1" max="200000" step="10">
+        <span class="as-val" id="arrow-head-width-val">300 м</span>
+      </div>
+      <div class="as-row">
+        <label for="arrow-head-length">Длина, м</label>
+        <input type="number" id="arrow-head-length" value="900" min="1" max="200000" step="10">
+        <span class="as-val" id="arrow-head-length-val">900 м</span>
+      </div>
+      <div class="as-row">
+        <label for="arrow-head-shape">Форма</label>
+        <input type="range" id="arrow-head-shape" min="0" max="100" value="0">
+        <span class="as-val" id="arrow-head-shape-val">0.00</span>
+      </div>
+
+      <div class="as-title">Ушки</div>
+      <div class="as-row">
+        <label><input type="checkbox" id="arrow-ears" checked> Включены</label>
+      </div>
+      <div class="as-row">
+        <label for="arrow-ear-spread">Разлёт, м</label>
+        <input type="number" id="arrow-ear-spread" value="1400" min="0" max="200000" step="10">
+        <span class="as-val" id="arrow-ear-spread-val">1400 м</span>
+      </div>
+      <div class="as-row">
+        <label for="arrow-ear-forward">Смещение, м</label>
+        <input type="number" id="arrow-ear-forward" value="0" min="-200000" max="200000" step="10">
+        <span class="as-val" id="arrow-ear-forward-val">0 м</span>
+      </div>
+
+      <div class="as-title">Свечение</div>
+      <div class="as-row">
+        <label><input type="checkbox" id="arrow-glow"> Включено</label>
+      </div>
+      <div class="as-row">
+        <label for="arrow-glow-blur">Сила</label>
+        <input type="range" id="arrow-glow-blur" min="0" max="60" value="12" disabled>
+        <span class="as-val" id="arrow-glow-blur-val">12</span>
+      </div>
+      <div class="as-row">
+        <label for="arrow-glow-color">Цвет</label>
+        <input type="color" id="arrow-glow-color" value="#7f8cff" disabled>
+      </div>
+
+      <div class="as-title">Обводка</div>
+      <div class="as-row">
+        <label><input type="checkbox" id="arrow-stroke" checked> Включена</label>
+      </div>
+      <div class="as-row">
+        <label for="arrow-stroke-width">Толщина</label>
+        <input type="range" id="arrow-stroke-width" min="0" max="100" value="20">
+        <span class="as-val" id="arrow-stroke-width-val">2.0</span>
+      </div>
+      <div class="as-row">
+        <label for="arrow-stroke-color">Цвет</label>
+        <input type="color" id="arrow-stroke-color" value="#ffffff">
+      </div>
+      <div class="as-row">
+        <label for="arrow-stroke-opacity">Прозр.</label>
+        <input type="range" id="arrow-stroke-opacity" min="0" max="100" value="100">
+        <span class="as-val" id="arrow-stroke-opacity-val">1.00</span>
+      </div>
+      <div class="as-row">
+        <label><input type="checkbox" id="arrow-stroke-dash"> Пунктирная</label>
+      </div>
+
+      <div class="as-btns">
+        <button id="arrow-append" type="button">Дорисовать</button>
+        <button id="arrow-del-node" type="button">Узел −</button>
+        <button id="arrow-move" data-move="arrow" type="button">Переместить</button>
+      </div>
+    </div>
+
+    <div id="line-style" class="panel-style">
+      <div class="as-title">Линия</div>
+      <div class="as-row">
+        <label for="line-color">Цвет</label>
+        <input type="color" id="line-color" value="#e63946">
+        <span class="as-val" id="line-color-val">#e63946</span>
+      </div>
+      <div class="as-row">
+        <label for="line-width">Толщина</label>
+        <input type="number" id="line-width" value="3" min="1" max="200" step="1">
+        <span class="as-val" id="line-width-val">3 px</span>
+      </div>
+      <div class="as-row">
+        <label for="line-opacity">Прозр.</label>
+        <input type="range" id="line-opacity" min="0" max="100" value="100">
+        <span class="as-val" id="line-opacity-val">100%</span>
+      </div>
+      <div class="as-row">
+        <label for="line-dash">Тип</label>
+        <select id="line-dash">
+          <option value="solid">Сплошная</option>
+          <option value="dotted">Пунктир</option>
+          <option value="dashed">Штрих</option>
+          <option value="dashdot">Штрих-пункт</option>
+        </select>
+      </div>
+      <div class="as-row">
+        <label>Режим</label>
+        <div class="as-seg" id="line-smooth">
+          <button data-smooth="0" class="active">Прямая</button>
+          <button data-smooth="1">Сглаженная</button>
+        </div>
+      </div>
+      <div class="as-row">
+        <label for="line-smooth-amount">Сглаживание</label>
+        <input type="range" id="line-smooth-amount" min="0" max="100" value="60" disabled>
+        <span class="as-val" id="line-smooth-amount-val">0.60</span>
+      </div>
+      <div class="as-row" id="line-length-row" style="display: none;">
+        <label>Длина</label>
+        <span class="as-val measure-val" id="line-length-val">—</span>
+      </div>
+      <div class="as-btns">
+        <button id="line-move" data-move="line" type="button">Переместить</button>
+      </div>
+    </div>
+
+    <div id="polygon-style" class="panel-style">
+      <div class="as-title">Заливка</div>
+      <div class="as-row">
+        <label for="polygon-color">Цвет</label>
+        <input type="color" id="polygon-color" value="#e63946">
+        <span class="as-val" id="polygon-color-val">#e63946</span>
+      </div>
+      <div class="as-row">
+        <label for="polygon-opacity">Прозр.</label>
+        <input type="range" id="polygon-opacity" min="0" max="100" value="25">
+        <span class="as-val" id="polygon-opacity-val">25%</span>
+      </div>
+      <div class="as-row">
+        <label>Вид</label>
+        <div class="as-seg" id="polygon-fill">
+          <button data-fill="solid" class="active">Сплошная</button>
+          <button data-fill="hatched">Штриховка</button>
+        </div>
+      </div>
+      <div class="as-title">Обводка</div>
+      <div class="as-row">
+        <label for="polygon-outline-width">Толщина</label>
+        <input type="number" id="polygon-outline-width" value="2" min="0" max="100" step="1">
+        <span class="as-val" id="polygon-outline-width-val">2 px</span>
+      </div>
+      <div class="as-row">
+        <label for="polygon-outline-color">Цвет</label>
+        <input type="color" id="polygon-outline-color" value="#e63946">
+        <span class="as-val" id="polygon-outline-color-val">#e63946</span>
+      </div>
+      <div class="as-row">
+        <label for="polygon-outline-dash">Тип</label>
+        <select id="polygon-outline-dash">
+          <option value="solid">Сплошная</option>
+          <option value="dotted">Пунктир</option>
+          <option value="dashed">Штрих</option>
+          <option value="dashdot">Штрих-пункт</option>
+        </select>
+      </div>
+      <div class="as-row" id="polygon-area-row" style="display: none;">
+        <label>Площадь</label>
+        <span class="as-val measure-val" id="polygon-area-val">—</span>
+      </div>
+      <div class="as-title">Подпись площади</div>
+      <div class="as-row">
+        <label for="polygon-area-color">Цвет текста</label>
+        <input type="color" id="polygon-area-color" value="#eaf0ff">
+        <span class="as-val" id="polygon-area-color-val">#eaf0ff</span>
+      </div>
+      <div class="as-row">
+        <label for="polygon-area-size">Размер</label>
+        <input type="range" id="polygon-area-size" min="6" max="48" value="12">
+        <span class="as-val" id="polygon-area-size-val">12 px</span>
+      </div>
+      <div class="as-row">
+        <label for="polygon-area-bg">Подложка</label>
+        <input type="checkbox" id="polygon-area-bg" checked>
+      </div>
+      <div class="as-btns">
+        <button id="polygon-move" data-move="polygon" type="button">Переместить</button>
+      </div>
+    </div>
+
+    <div id="point-style" class="panel-style">
+      <div class="as-title">Точка</div>
+      <div class="as-row">
+        <label for="point-color">Цвет</label>
+        <input type="color" id="point-color" value="#e63946">
+        <span class="as-val" id="point-color-val">#e63946</span>
+      </div>
+      <div class="as-row">
+        <label for="point-size">Размер</label>
+        <input type="number" id="point-size" value="7" min="2" max="60" step="1">
+        <span class="as-val" id="point-size-val">7 px</span>
+      </div>
+
+      <div class="as-title">Подпись</div>
+      <div class="as-row">
+        <label for="point-caption">Текст</label>
+        <input type="text" id="point-caption" value="" placeholder="Без подписи">
+      </div>
+      <div class="as-row">
+        <label>Показ</label>
+        <div class="as-seg" id="point-caption-mode">
+          <button data-mode="never">Скрыта</button>
+          <button data-mode="selected" class="active">При выделении</button>
+          <button data-mode="always">Всегда</button>
+        </div>
+      </div>
+
+      <div class="as-title">Оформление подписи</div>
+      <div class="as-row">
+        <label for="point-label-color">Цвет</label>
+        <input type="color" id="point-label-color" value="#ffffff">
+        <span class="as-val" id="point-label-color-val">#ffffff</span>
+      </div>
+      <div class="as-row">
+        <label for="point-label-size">Размер</label>
+        <input type="number" id="point-label-size" value="13" min="6" max="96" step="1">
+        <span class="as-val" id="point-label-size-val">13 px</span>
+      </div>
+      <div class="as-row">
+        <label for="point-label-font">Шрифт</label>
+        <select id="point-label-font">
+          <option value="system">Системный</option>
+          <option value="sans">Без засечек</option>
+          <option value="serif">С засечками</option>
+          <option value="mono">Моно</option>
+          <option value="cursive">Рукописный</option>
+        </select>
+      </div>
+      <div class="as-row">
+        <label for="point-label-halo-color">Обводка</label>
+        <input type="color" id="point-label-halo-color" value="#0b0d10">
+        <input type="number" id="point-label-halo-width" value="2" min="0" max="10" step="1" title="Толщина обводки">
+      </div>
+      <div class="as-row">
+        <label for="point-label-opacity">Прозр.</label>
+        <input type="range" id="point-label-opacity" min="0" max="100" value="100">
+        <span class="as-val" id="point-label-opacity-val">100%</span>
+      </div>
+      <div class="as-row">
+        <label><input type="checkbox" id="point-label-bg"> Фон</label>
+        <input type="color" id="point-label-bg-color" value="#1b1e24">
+      </div>
+      <div class="as-checks">
+        <label><input type="checkbox" id="point-label-bold"> Жирный</label>
+        <label><input type="checkbox" id="point-label-italic"> Курсив</label>
+        <label><input type="checkbox" id="point-label-underline"> Подчёркнутый</label>
+        <label><input type="checkbox" id="point-label-strike"> Зачёркнутый</label>
+      </div>
+      <div class="as-btns">
+        <button id="point-move" data-move="point" type="button">Переместить</button>
+      </div>
+    </div>
+
+    <div id="label-style" class="panel-style">
+      <div class="as-title">Надпись</div>
+      <div class="as-row">
+        <label for="label-text">Текст</label>
+        <input type="text" id="label-text" value="">
+      </div>
+      <div class="as-row">
+        <label for="label-color">Цвет</label>
+        <input type="color" id="label-color" value="#ffffff">
+        <span class="as-val" id="label-color-val">#ffffff</span>
+      </div>
+      <div class="as-row">
+        <label for="label-size">Размер</label>
+        <input type="number" id="label-size" value="13" min="6" max="96" step="1">
+        <span class="as-val" id="label-size-val">13 px</span>
+      </div>
+      <div class="as-row">
+        <label for="label-font">Шрифт</label>
+        <select id="label-font">
+          <option value="system">Системный</option>
+          <option value="sans">Без засечек</option>
+          <option value="serif">С засечками</option>
+          <option value="mono">Моно</option>
+          <option value="cursive">Рукописный</option>
+        </select>
+      </div>
+      <div class="as-row">
+        <label for="label-halo-color">Обводка</label>
+        <input type="color" id="label-halo-color" value="#0b0d10">
+        <input type="number" id="label-halo-width" value="2" min="0" max="10" step="1" title="Толщина обводки">
+      </div>
+      <div class="as-row">
+        <label for="label-opacity">Прозр.</label>
+        <input type="range" id="label-opacity" min="0" max="100" value="100">
+        <span class="as-val" id="label-opacity-val">100%</span>
+      </div>
+      <div class="as-row">
+        <label><input type="checkbox" id="label-bg"> Фон</label>
+        <input type="color" id="label-bg-color" value="#1b1e24">
+      </div>
+      <div class="as-checks">
+        <label><input type="checkbox" id="label-bold"> Жирный</label>
+        <label><input type="checkbox" id="label-italic"> Курсив</label>
+        <label><input type="checkbox" id="label-underline"> Подчёркнутый</label>
+        <label><input type="checkbox" id="label-strike"> Зачёркнутый</label>
+      </div>
+      <div class="as-btns">
+        <button id="label-move" data-move="label" type="button">Переместить</button>
+      </div>
+    </div>
+
+    <div id="ruler-style" class="panel-style">
+      <div class="as-title">Линейка</div>
+      <div class="as-row">
+        <label for="ruler-color">Цвет</label>
+        <input type="color" id="ruler-color" value="#e0b050">
+        <span class="as-val" id="ruler-color-val">#e0b050</span>
+      </div>
+      <div class="as-row">
+        <label for="ruler-width">Толщина</label>
+        <input type="range" id="ruler-width" min="0.5" max="40" step="0.5" value="3">
+        <span class="as-val" id="ruler-width-val">3 px</span>
+      </div>
+      <div class="as-row">
+        <label for="ruler-opacity">Прозр.</label>
+        <input type="range" id="ruler-opacity" min="0" max="100" value="100">
+        <span class="as-val" id="ruler-opacity-val">100%</span>
+      </div>
+      <div class="as-row">
+        <label for="ruler-font-size">Шрифт</label>
+        <input type="number" id="ruler-font-size" min="6" max="96" step="1" value="12">
+        <span class="as-val" id="ruler-font-size-val">12 px</span>
+      </div>
+      <div class="as-row">
+        <label for="ruler-label-color">Цвет текста</label>
+        <input type="color" id="ruler-label-color" value="#eaf0ff">
+        <span class="as-val" id="ruler-label-color-val">#eaf0ff</span>
+      </div>
+      <div class="as-checks">
+        <label><input type="checkbox" id="ruler-ticks" checked> Деления</label>
+        <label><input type="checkbox" id="ruler-labels" checked> Подписи</label>
+      </div>
+      <div class="as-row" id="ruler-length-row" style="display:none">
+        <label>Длина</label>
+        <span class="as-val" id="ruler-length-val">—</span>
+      </div>
+      <div class="as-btns">
+        <button id="ruler-move" data-move="ruler" type="button">Переместить</button>
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+  <div class="fpanel hidden" id="pnl-dates">
+    <div class="fpanel-head">
+      <span class="fpanel-title">Даты элемента</span>
+      <div class="fpanel-actions"><button class="icon-btn fp-collapse" title="Свернуть">▾</button></div>
+    </div>
+    <div class="fpanel-body">
+      <div class="as-row">
+        <label for="dates-created">Создан</label>
+        <input type="date" id="dates-created">
+      </div>
+      <div class="as-row">
+        <label for="dates-deleted">Удалён</label>
+        <input type="date" id="dates-deleted">
+        <button class="icon-btn" id="dates-deleted-clear" title="Убрать дату удаления">✕</button>
+      </div>
+      <div class="as-title">Изменения</div>
+      <div id="dates-changes"></div>
+    </div>
+  </div>
+
+  <div id="settings-menu" class="hidden">
+    <div class="fpanel-title">Панели</div>
+    <label><input type="checkbox" id="set-layers" checked> Слои</label>
+    <label><input type="checkbox" id="set-props" checked> Свойства элемента</label>
+    <label><input type="checkbox" id="set-dates" checked> Даты элемента</label>
+  </div>
+
+  <div id="map">
+    <div id="toolbar">
+      <button data-tool="select" class="on" title="Выбор и перемещение">Выбор</button>
+      <button data-tool="line" title="Линия">Линия</button>
+      <button data-tool="polygon" title="Полигон">Полигон</button>
+      <button data-tool="point" title="Точка">Точка</button>
+      <button data-tool="label" title="Надпись на карте">Надпись</button>
+      <button data-tool="arrow" title="Стрелка">Стрелка</button>
+      <button data-tool="ruler" title="Линейка">Линейка</button>
+      <div class="sep"></div>
+      <button id="btn-delete" title="Удалить выбранное (Del)">Удалить</button>
+      <button id="btn-clear" title="Очистить черновик (Esc)">Сброс</button>
+      <div class="sep"></div>
+      <select id="basemap" title="Базовая карта"></select>
+      <button id="btn-settings" title="Настройки панелей">⚙</button>
+      <div class="sep"></div>
+      <span id="user-box"><span class="ub-name" id="ub-name">—</span><span class="ub-role" id="ub-role"></span></span>
+      <button id="btn-users" title="Пользователи" style="display:none">Люди</button>
+      <button id="btn-logout" title="Выйти">Выйти</button>
+    </div>
+    <div id="hint"></div>
+    <canvas id="ruler-layer"></canvas>
+
+    <div id="timeline">
+      <button class="icon-btn" id="tl-prev" title="Предыдущий день">‹</button>
+      <span id="tl-date" title="Открыть календарь">—</span>
+      <button class="icon-btn" id="tl-next" title="Следующий день">›</button>
+      <button class="icon-btn" id="tl-cal" title="Открыть календарь">📅</button>
+      <button class="icon-btn" id="tl-now" title="Вернуться к настоящему">Сейчас</button>
+    </div>
+
+    <div id="calendar" class="hidden"></div>
+  </div>
+</div>
+
+<div class="modal-back" id="modal-back">
+  <div class="modal">
+    <h3 id="modal-title">Новый слой</h3>
+    <label>Название</label>
+    <input type="text" id="modal-name" placeholder="Например: Линия фронта">
+    <label id="modal-color-label">Цвет</label>
+    <input type="text" id="modal-color" value="#e63946" placeholder="#e63946">
+    <div class="row">
+      <button id="modal-cancel">Отмена</button>
+      <button class="primary" id="modal-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-back" id="delete-back">
+  <div class="modal">
+    <h3>Удалить элемент</h3>
+    <p class="del-hint">Удалить во всех временных периодах или только с выбранной даты и далее?</p>
+    <div class="del-date">Дата: <b id="delete-date">—</b></div>
+    <div class="row">
+      <button id="delete-cancel">Отмена</button>
+      <button id="delete-from">С этой даты и далее</button>
+      <button class="primary" id="delete-all">Во всех периодах</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="./config.js"></script>
+<script src="./app.js" type="module"></script>
+</body>
+</html>

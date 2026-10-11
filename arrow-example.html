@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактор стрелок · финал</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        body {
+            margin: 0; min-height: 100vh;
+            background: #1e1f2a;
+            display: flex; align-items: center; justify-content: center;
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+            padding: 16px;
+        }
+        .app {
+            background: #2d2f3b; border-radius: 28px;
+            padding: 18px 22px 22px;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.6);
+            display: flex; flex-direction: column; gap: 12px;
+            max-width: 100%;
+        }
+        canvas {
+            display: block; width: 940px; height: 480px;
+            border-radius: 18px; background: #0e0f15;
+            box-shadow: inset 0 0 0 1px #3e4052, 0 8px 12px rgba(0,0,0,0.4);
+            cursor: default;
+        }
+        .toolbar {
+            display: flex; align-items: flex-start; gap: 10px;
+            flex-wrap: wrap; color: #dfe2f0; font-weight: 500;
+            padding: 0 2px;
+        }
+        .panel {
+            display: flex; flex-direction: column; gap: 7px;
+            background: #23253250; padding: 9px 13px;
+            border-radius: 14px; border: 1px solid #3a3e55;
+        }
+        .panel-title {
+            font-size: 10px; text-transform: uppercase;
+            letter-spacing: 1.2px; color: #8b91b5;
+            font-weight: 700; margin-bottom: 1px;
+        }
+        .row {
+            display: flex; align-items: center; gap: 7px;
+        }
+        .row label {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 11.5px; letter-spacing: 0.2px;
+            min-width: 118px;
+        }
+        input[type="number"] {
+            width: 56px; background: #1a1c26;
+            border: 1px solid #4c4f66; border-radius: 7px;
+            padding: 4px 6px; color: #f0f3ff;
+            font-weight: 500; outline: none; font-size: 11.5px;
+        }
+        input[type="number"]:focus {
+            border-color: #7f8cff; box-shadow: 0 0 0 2px rgba(127,140,255,0.3);
+        }
+        input[type="number"]:disabled { opacity: 0.4; cursor: not-allowed; }
+        input[type="color"] {
+            width: 30px; height: 30px; padding: 2px;
+            background: #1a1c26; border: 1px solid #4c4f66;
+            border-radius: 7px; cursor: pointer;
+        }
+        input[type="color"]:disabled { opacity: 0.4; cursor: not-allowed; }
+        input[type="range"] {
+            width: 80px; accent-color: #7f8cff;
+            background: #1a1c26; border-radius: 20px; height: 6px;
+        }
+        input[type="range"]:disabled { opacity: 0.4; }
+        input[type="checkbox"] {
+            accent-color: #7f8cff; cursor: pointer;
+            width: 14px; height: 14px;
+        }
+        input[type="checkbox"]:disabled { opacity: 0.4; cursor: not-allowed; }
+        .segmented {
+            display: flex; background: #1a1c26;
+            border: 1px solid #4c4f66; border-radius: 7px;
+            overflow: hidden;
+        }
+        .segmented button {
+            border: none; background: transparent;
+            padding: 4px 9px; font-size: 10.5px;
+            font-weight: 600; color: #9ba0c0;
+            cursor: pointer; transition: 0.15s;
+        }
+        .segmented button:hover:not(:disabled) { color: #e0e3ff; }
+        .segmented button.active { background: #4a4fd9; color: white; }
+        .segmented button:disabled { opacity: 0.4; cursor: not-allowed; }
+        button {
+            background: #30334a; border: 1px solid #4e5270;
+            border-radius: 40px; padding: 7px 13px;
+            font-weight: 600; font-size: 11.5px; color: #eceefb;
+            cursor: pointer; transition: 0.15s;
+            display: flex; align-items: center; gap: 4px;
+        }
+        button:hover { background: #3d4160; border-color: #7f8cff; }
+        button.primary { background: #4a4fd9; border-color: #7f8cff; color: white; }
+        button.primary:hover { background: #5c62f0; }
+        button.danger { background: #6e2b3a; border-color: #c94b6a; }
+        button.danger:hover { background: #8c3850; }
+        button.toggle-active { background: #4a4fd9; color: white; border-color: #7f8cff; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .status {
+            margin-left: auto; font-size: 11px; opacity: 0.9;
+            background: #1f212d; padding: 6px 12px;
+            border-radius: 30px; border: 1px solid #3a3e55;
+            white-space: nowrap; align-self: center;
+        }
+        .actions {
+            display: flex; gap: 6px; align-self: center;
+            flex-wrap: wrap;
+        }
+        .val {
+            font-size: 10px; min-width: 26px;
+            opacity: 0.7; display: inline-block;
+        }
+        .dash-preview {
+            display: inline-block; width: 22px; height: 2px;
+            background-image: linear-gradient(to right,
+                #7f8cff 0, #7f8cff 60%, transparent 60%, transparent 100%);
+            background-size: 6px 2px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <canvas id="canvas" width="940" height="480"></canvas>
+
+    <div class="toolbar">
+        <!-- Ствол -->
+        <div class="panel">
+            <div class="panel-title">Ствол</div>
+            <div class="row">
+                <label>Основание
+                    <input type="number" id="baseWidth" value="30" min="2" max="200" step="1">
+                </label>
+            </div>
+            <div class="row">
+                <label>Режим</label>
+                <div class="segmented" id="stemModeGroup">
+                    <button data-mode="sharp" class="active" disabled>Прямые</button>
+                    <button data-mode="smooth" disabled>Сглаж.</button>
+                </div>
+            </div>
+            <div class="row">
+                <label>Сглаживание
+                    <input type="range" id="smoothAmount" min="0" max="1" step="0.01" value="0.6">
+                    <span id="smoothVal" class="val">0.60</span>
+                </label>
+            </div>
+            <div class="row">
+                <label>
+                    <input type="checkbox" id="autoSmooth" checked>
+                    Авто-ручки
+                </label>
+            </div>
+        </div>
+
+        <!-- Наконечник -->
+        <div class="panel">
+            <div class="panel-title">Наконечник</div>
+            <div class="row">
+                <label>Основание
+                    <input type="number" id="headBaseWidth" value="14" min="1" max="200" step="1">
+                </label>
+            </div>
+            <div class="row">
+                <label>Длина
+                    <input type="number" id="headLength" value="46" min="4" max="200" step="1">
+                </label>
+            </div>
+            <div class="row">
+                <label>Форма
+                    <input type="range" id="headShape" min="0" max="1" step="0.01" value="0">
+                    <span class="val" style="opacity:0.5;">△→◁</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Ушки -->
+        <div class="panel">
+            <div class="panel-title">Ушки</div>
+            <div class="row">
+                <label>
+                    <input type="checkbox" id="earsEnabled" checked>
+                    Включены
+                </label>
+            </div>
+            <div class="row">
+                <label>Разлёт
+                    <input type="number" id="earSpread" value="70" min="0" max="300" step="1">
+                </label>
+            </div>
+            <div class="row">
+                <label>Смещение
+                    <input type="number" id="earForward" value="0" min="-100" max="200" step="1">
+                </label>
+            </div>
+        </div>
+
+        <!-- Свечение -->
+        <div class="panel">
+            <div class="panel-title">Свечение</div>
+            <div class="row">
+                <label>
+                    <input type="checkbox" id="glowEnabled">
+                    Включено
+                </label>
+            </div>
+            <div class="row">
+                <label>Сила
+                    <input type="range" id="glowBlur" min="0" max="60" step="1" value="12">
+                    <span id="glowBlurVal" class="val">12</span>
+                </label>
+            </div>
+            <div class="row">
+                <label>Цвет
+                    <input type="color" id="glowColor" value="#7f8cff">
+                </label>
+            </div>
+        </div>
+
+        <!-- Обводка -->
+        <div class="panel">
+            <div class="panel-title">Обводка</div>
+            <div class="row">
+                <label>
+                    <input type="checkbox" id="strokeEnabled" checked>
+                    Включена
+                </label>
+            </div>
+            <div class="row">
+                <label>Толщина
+                    <input type="range" id="strokeWidth" min="0" max="10" step="0.1" value="1.2">
+                    <span id="strokeWidthVal" class="val">1.2</span>
+                </label>
+            </div>
+            <div class="row">
+                <label>Цвет
+                    <input type="color" id="strokeColor" value="#ffffff">
+                </label>
+            </div>
+            <div class="row">
+                <label>Прозр.
+                    <input type="range" id="strokeOpacity" min="0" max="1" step="0.01" value="1">
+                    <span id="strokeOpacityVal" class="val">1.00</span>
+                </label>
+            </div>
+            <div class="row">
+                <label>
+                    <input type="checkbox" id="strokeDashed">
+                    Пунктирная
+                </label>
+            </div>
+        </div>
+
+        <!-- Заливка -->
+        <div class="panel">
+            <div class="panel-title">Заливка</div>
+            <div class="row">
+                <label>Цвет
+                    <input type="color" id="color" value="#7f8cff">
+                </label>
+            </div>
+            <div class="row">
+                <label>Прозр.
+                    <input type="range" id="opacity" min="0.1" max="1.0" step="0.01" value="0.95">
+                    <span id="opacityVal" class="val">0.95</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="newArrowBtn" class="primary">✏️ Рисовать</button>
+            <button id="appendBtn" disabled>⇢ Дорисовать</button>
+            <button id="deleteNodeBtn" disabled>— Узел</button>
+            <button id="deleteBtn" class="danger" disabled>🗑</button>
+        </div>
+
+        <div class="status" id="statusMsg">Нажмите «Рисовать», затем кликните по холсту</div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // ---- Состояния ----
+    let arrows = [];
+    let selectedIndex = -1;
+    let drawingState = null;
+    let dragState = null;
+    let mousePos = null;
+    let appendMode = false;
+    let newArrowMode = false;   // Режим создания новой стрелки — включается кнопкой
+
+    // ---- DOM ----
+    const baseWidthInput = document.getElementById('baseWidth');
+    const stemModeGroup = document.getElementById('stemModeGroup');
+    const smoothAmountInput = document.getElementById('smoothAmount');
+    const smoothVal = document.getElementById('smoothVal');
+    const autoSmoothInput = document.getElementById('autoSmooth');
+    const headBaseWidthInput = document.getElementById('headBaseWidth');
+    const headLengthInput = document.getElementById('headLength');
+    const headShapeInput = document.getElementById('headShape');
+    const earsEnabledInput = document.getElementById('earsEnabled');
+    const earSpreadInput = document.getElementById('earSpread');
+    const earForwardInput = document.getElementById('earForward');
+    const glowEnabledInput = document.getElementById('glowEnabled');
+    const glowBlurInput = document.getElementById('glowBlur');
+    const glowBlurVal = document.getElementById('glowBlurVal');
+    const glowColorInput = document.getElementById('glowColor');
+    const strokeEnabledInput = document.getElementById('strokeEnabled');
+    const strokeWidthInput = document.getElementById('strokeWidth');
+    const strokeWidthVal = document.getElementById('strokeWidthVal');
+    const strokeColorInput = document.getElementById('strokeColor');
+    const strokeOpacityInput = document.getElementById('strokeOpacity');
+    const strokeOpacityVal = document.getElementById('strokeOpacityVal');
+    const strokeDashedInput = document.getElementById('strokeDashed');
+    const colorInput = document.getElementById('color');
+    const opacityInput = document.getElementById('opacity');
+    const opacityVal = document.getElementById('opacityVal');
+    const newArrowBtn = document.getElementById('newArrowBtn');
+    const appendBtn = document.getElementById('appendBtn');
+    const deleteNodeBtn = document.getElementById('deleteNodeBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const statusMsg = document.getElementById('statusMsg');
+
+    // ---- Утилиты ----
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const distance = (p1, p2) => Math.hypot(p2.x - p1.x, p2.y - p1.y);
+
+    function normalizeVector(from, to) {
+        const dx = to.x - from.x, dy = to.y - from.y;
+        const len = Math.hypot(dx, dy);
+        if (len < 0.0001) return { x: 0, y: 0 };
+        return { x: dx / len, y: dy / len };
+    }
+
+    function makeNode(x, y) {
+        return {
+            x, y,
+            hInX: x, hInY: y,
+            hOutX: x, hOutY: y,
+            auto: true
+        };
+    }
+
+    function recalcAutoHandles(points, tension) {
+        const n = points.length;
+        if (n < 2) return;
+        for (let i = 0; i < n; i++) {
+            if (!points[i].auto) continue;
+            let tx, ty;
+            if (i === 0) {
+                tx = points[1].x - points[0].x;
+                ty = points[1].y - points[0].y;
+            } else if (i === n - 1) {
+                tx = points[n-1].x - points[n-2].x;
+                ty = points[n-1].y - points[n-2].y;
+            } else {
+                tx = points[i+1].x - points[i-1].x;
+                ty = points[i+1].y - points[i-1].y;
+            }
+            const tlen = Math.hypot(tx, ty) || 1;
+            const nx = tx / tlen, ny = ty / tlen;
+            const dPrev = (i > 0) ? distance(points[i], points[i-1]) : 0;
+            const dNext = (i < n-1) ? distance(points[i], points[i+1]) : 0;
+            let scale = (dPrev + dNext) / 2;
+            if (scale < 0.0001) scale = 40;
+            const handleLen = scale * 0.35 * tension;
+            points[i].hOutX = points[i].x + nx * handleLen;
+            points[i].hOutY = points[i].y + ny * handleLen;
+            points[i].hInX = points[i].x - nx * handleLen;
+            points[i].hInY = points[i].y - ny * handleLen;
+        }
+    }
+
+    function setAutoForAll(arrow, auto) {
+        arrow.points.forEach(p => { p.auto = auto; });
+        if (auto) recalcAutoHandles(arrow.points, 0.8);
+    }
+
+    // ---- Построение полигона ----
+    function buildArrowPolygon(arrow) {
+        const pts = arrow.points;
+        const n = pts.length;
+        if (n < 2) return null;
+
+        const baseW = arrow.baseWidth;
+        const headBaseW = arrow.headBaseWidth;
+        const headLen = arrow.headLength;
+        const shape = arrow.headShape;
+        const earsEnabled = arrow.earsEnabled;
+        const earSpread = arrow.earSpread;
+        const earForward = arrow.earForward;
+        const stemMode = arrow.stemMode;
+        const smoothAmount = arrow.smoothAmount;
+
+        if (stemMode === 'smooth') {
+            recalcAutoHandles(pts, 0.6 + 0.4 * smoothAmount);
+        }
+
+        let path;
+        if (stemMode === 'smooth' && n >= 2) {
+            const SAMPLES = 20;
+            path = [];
+            for (let i = 0; i < n - 1; i++) {
+                const p0 = pts[i];
+                const p3 = pts[i + 1];
+                const c1x = p0.hOutX, c1y = p0.hOutY;
+                const c2x = p3.hInX, c2y = p3.hInY;
+                for (let s = 0; s < SAMPLES; s++) {
+                    const t = s / SAMPLES;
+                    const t2 = t * t, t3 = t2 * t;
+                    const mt = 1 - t, mt2 = mt * mt, mt3 = mt2 * mt;
+                    const x = mt3 * p0.x + 3 * mt2 * t * c1x + 3 * mt * t2 * c2x + t3 * p3.x;
+                    const y = mt3 * p0.y + 3 * mt2 * t * c1y + 3 * mt * t2 * c2y + t3 * p3.y;
+                    const dx = 3 * mt2 * (c1x - p0.x) + 6 * mt * t * (c2x - c1x) + 3 * t2 * (p3.x - c2x);
+                    const dy = 3 * mt2 * (c1y - p0.y) + 6 * mt * t * (c2y - c1y) + 3 * t2 * (p3.y - c2y);
+                    const dlen = Math.hypot(dx, dy) || 1;
+                    path.push({ x, y, dirX: dx/dlen, dirY: dy/dlen, globalT: (i + t)/(n-1) });
+                }
+            }
+            const last = pts[n - 1];
+            const prevP = path[path.length - 1];
+            path.push({
+                x: last.x, y: last.y,
+                dirX: prevP ? prevP.dirX : 1,
+                dirY: prevP ? prevP.dirY : 0,
+                globalT: 1
+            });
+        } else {
+            path = [];
+            for (let i = 0; i < n; i++) {
+                let dirX, dirY;
+                if (i === 0) {
+                    const d = normalizeVector(pts[0], pts[1]);
+                    dirX = d.x; dirY = d.y;
+                } else if (i === n - 1) {
+                    const d = normalizeVector(pts[n - 2], pts[n - 1]);
+                    dirX = d.x; dirY = d.y;
+                } else {
+                    const d1 = normalizeVector(pts[i - 1], pts[i]);
+                    const d2 = normalizeVector(pts[i], pts[i + 1]);
+                    const sumX = d1.x + d2.x, sumY = d1.y + d2.y;
+                    const len = Math.hypot(sumX, sumY);
+                    if (len < 0.001) { dirX = d1.x; dirY = d1.y; }
+                    else { dirX = sumX / len; dirY = sumY / len; }
+                }
+                path.push({ x: pts[i].x, y: pts[i].y, dirX, dirY, globalT: i/(n-1) });
+            }
+        }
+
+        if (path.length < 2) return null;
+
+        const widthAt = (t) => baseW + (headBaseW - baseW) * t;
+        const leftPts = [], rightPts = [];
+        for (let i = 0; i < path.length; i++) {
+            const pt = path[i];
+            const w = widthAt(pt.globalT);
+            const halfW = w / 2;
+            const perp = { x: -pt.dirY, y: pt.dirX };
+            leftPts.push({ x: pt.x + perp.x * halfW, y: pt.y + perp.y * halfW });
+            rightPts.push({ x: pt.x - perp.x * halfW, y: pt.y - perp.y * halfW });
+        }
+
+        const lastPt = path[path.length - 1];
+        const neckPoint = { x: lastPt.x, y: lastPt.y };
+        const neckDir = { x: lastPt.dirX, y: lastPt.dirY };
+        const neckPerp = { x: -neckDir.y, y: neckDir.x };
+        const halfNeck = headBaseW / 2;
+
+        const tipPoint = {
+            x: neckPoint.x + neckDir.x * headLen,
+            y: neckPoint.y + neckDir.y * headLen
+        };
+        const midPoint = {
+            x: neckPoint.x + neckDir.x * headLen * 0.5,
+            y: neckPoint.y + neckDir.y * headLen * 0.5
+        };
+        const shoulderExtra = headBaseW * 0.6 * shape;
+        const leftShoulder = {
+            x: midPoint.x + neckPerp.x * (halfNeck + shoulderExtra),
+            y: midPoint.y + neckPerp.y * (halfNeck + shoulderExtra)
+        };
+        const rightShoulder = {
+            x: midPoint.x - neckPerp.x * (halfNeck + shoulderExtra),
+            y: midPoint.y - neckPerp.y * (halfNeck + shoulderExtra)
+        };
+
+        const earBase = {
+            x: neckPoint.x + neckDir.x * earForward,
+            y: neckPoint.y + neckDir.y * earForward
+        };
+        const leftEar = {
+            x: earBase.x + neckPerp.x * earSpread,
+            y: earBase.y + neckPerp.y * earSpread
+        };
+        const rightEar = {
+            x: earBase.x - neckPerp.x * earSpread,
+            y: earBase.y - neckPerp.y * earSpread
+        };
+
+        const poly = [];
+        for (let i = 0; i < leftPts.length; i++) poly.push(leftPts[i]);
+        if (earsEnabled) poly.push(leftEar);
+        if (shape > 0.01) poly.push(leftShoulder);
+        poly.push(tipPoint);
+        if (shape > 0.01) poly.push(rightShoulder);
+        if (earsEnabled) poly.push(rightEar);
+        for (let i = rightPts.length - 1; i >= 0; i--) poly.push(rightPts[i]);
+
+        return poly;
+    }
+
+    function pointInPolygon(pt, poly) {
+        let inside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            const xi = poly[i].x, yi = poly[i].y;
+            const xj = poly[j].x, yj = poly[j].y;
+            const intersect = ((yi > pt.y) !== (yj > pt.y)) &&
+                (pt.x < (xj - xi) * (pt.y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    function findArrowAt(pt) {
+        for (let i = arrows.length - 1; i >= 0; i--) {
+            const poly = buildArrowPolygon(arrows[i]);
+            if (poly && pointInPolygon(pt, poly)) return i;
+        }
+        return -1;
+    }
+
+    function findPointAt(pt, tolerance = 9) {
+        for (let i = arrows.length - 1; i >= 0; i--) {
+            const arrow = arrows[i];
+            for (let j = 0; j < arrow.points.length; j++) {
+                if (distance(arrow.points[j], pt) <= tolerance) {
+                    return { arrowIndex: i, pointIndex: j };
+                }
+            }
+        }
+        return null;
+    }
+
+    function findHandleAt(pt, tolerance = 8) {
+        if (selectedIndex < 0 || selectedIndex >= arrows.length) return null;
+        const arrow = arrows[selectedIndex];
+        if (arrow.stemMode !== 'smooth') return null;
+        for (let j = 0; j < arrow.points.length; j++) {
+            const p = arrow.points[j];
+            if (distance({ x: p.hOutX, y: p.hOutY }, pt) <= tolerance) {
+                return { arrowIndex: selectedIndex, pointIndex: j, handle: 'out' };
+            }
+            if (distance({ x: p.hInX, y: p.hInY }, pt) <= tolerance) {
+                return { arrowIndex: selectedIndex, pointIndex: j, handle: 'in' };
+            }
+        }
+        return null;
+    }
+
+    function findSegmentAt(pt, tolerance = 10) {
+        if (selectedIndex < 0 || selectedIndex >= arrows.length) return null;
+        const arrow = arrows[selectedIndex];
+        const pts = arrow.points;
+        const n = pts.length;
+        if (n < 2) return null;
+        const SAMPLES = 40;
+        const isSmooth = arrow.stemMode === 'smooth';
+        let best = null;
+        let bestDist = tolerance;
+        for (let i = 0; i < n - 1; i++) {
+            const p0 = pts[i];
+            const p3 = pts[i + 1];
+            for (let s = 0; s <= SAMPLES; s++) {
+                const t = s / SAMPLES;
+                let px, py;
+                if (isSmooth) {
+                    const c1x = p0.hOutX, c1y = p0.hOutY;
+                    const c2x = p3.hInX, c2y = p3.hInY;
+                    const t2 = t * t, t3 = t2 * t;
+                    const mt = 1 - t, mt2 = mt * mt, mt3 = mt2 * mt;
+                    px = mt3 * p0.x + 3 * mt2 * t * c1x + 3 * mt * t2 * c2x + t3 * p3.x;
+                    py = mt3 * p0.y + 3 * mt2 * t * c1y + 3 * mt * t2 * c2y + t3 * p3.y;
+                } else {
+                    px = p0.x + (p3.x - p0.x) * t;
+                    py = p0.y + (p3.y - p0.y) * t;
+                }
+                const d = Math.hypot(pt.x - px, pt.y - py);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = { arrowIndex: selectedIndex, segIndex: i, t };
+                }
+            }
+        }
+        return best;
+    }
+
+    function setStemModeUI(mode) {
+        stemModeGroup.querySelectorAll('button').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        const hasSel = selectedIndex >= 0 && selectedIndex < arrows.length;
+        smoothAmountInput.disabled = (mode !== 'smooth') || !hasSel;
+        autoSmoothInput.disabled = (mode !== 'smooth') || !hasSel;
+        smoothVal.style.opacity = smoothAmountInput.disabled ? '0.3' : '0.7';
+    }
+
+    // ---- Синхронизация UI ----
+    function syncUIFromSelection() {
+        const hasSel = selectedIndex >= 0 && selectedIndex < arrows.length;
+        if (hasSel) {
+            const a = arrows[selectedIndex];
+            baseWidthInput.value = a.baseWidth;
+            headBaseWidthInput.value = a.headBaseWidth;
+            headLengthInput.value = a.headLength;
+            headShapeInput.value = a.headShape;
+            earsEnabledInput.checked = a.earsEnabled;
+            earSpreadInput.value = a.earSpread;
+            earForwardInput.value = a.earForward;
+            // ВАЖНО: используем значение как есть, БЕЗ инверсии.
+            // Если у стрелки glowEnabled = true → галочка стоит.
+            glowEnabledInput.checked = !!a.glowEnabled;
+            glowBlurInput.value = a.glowBlur;
+            glowBlurVal.textContent = a.glowBlur;
+            glowColorInput.value = a.glowColor;
+            strokeEnabledInput.checked = !!a.strokeEnabled;
+            strokeWidthInput.value = a.strokeWidth;
+            strokeWidthVal.textContent = a.strokeWidth.toFixed(1);
+            strokeColorInput.value = a.strokeColor;
+            strokeOpacityInput.value = a.strokeOpacity;
+            strokeOpacityVal.textContent = a.strokeOpacity.toFixed(2);
+            strokeDashedInput.checked = !!a.strokeDashed;
+            colorInput.value = a.color;
+            opacityInput.value = a.opacity;
+            opacityVal.textContent = a.opacity.toFixed(2);
+            smoothAmountInput.value = a.smoothAmount;
+            smoothVal.textContent = a.smoothAmount.toFixed(2);
+            const allAuto = a.points.every(p => p.auto);
+            autoSmoothInput.checked = allAuto;
+            setStemModeUI(a.stemMode);
+        } else {
+            setStemModeUI('sharp');
+        }
+
+        [baseWidthInput, headBaseWidthInput, headLengthInput,
+         headShapeInput, earsEnabledInput, earSpreadInput,
+         earForwardInput, glowEnabledInput, glowBlurInput, glowColorInput,
+         strokeEnabledInput, strokeWidthInput, strokeColorInput,
+         strokeOpacityInput, strokeDashedInput,
+         colorInput, opacityInput]
+            .forEach(el => el.disabled = !hasSel);
+
+        stemModeGroup.querySelectorAll('button').forEach(btn => btn.disabled = !hasSel);
+
+        if (hasSel) {
+            const earsOn = earsEnabledInput.checked;
+            earSpreadInput.disabled = !earsOn;
+            earForwardInput.disabled = !earsOn;
+            glowBlurInput.disabled = !glowEnabledInput.checked;
+            glowColorInput.disabled = !glowEnabledInput.checked;
+            strokeWidthInput.disabled = !strokeEnabledInput.checked;
+            strokeColorInput.disabled = !strokeEnabledInput.checked;
+            strokeOpacityInput.disabled = !strokeEnabledInput.checked;
+            strokeDashedInput.disabled = !strokeEnabledInput.checked;
+        }
+
+        deleteBtn.disabled = !hasSel;
+        appendBtn.disabled = !hasSel;
+        deleteNodeBtn.disabled = !hasSel || arrows[selectedIndex].points.length <= 2;
+    }
+
+    function updateSelectedFromUI() {
+        if (selectedIndex < 0 || selectedIndex >= arrows.length) return;
+        const a = arrows[selectedIndex];
+        a.baseWidth = clamp(Number(baseWidthInput.value) || 30, 2, 200);
+        a.headBaseWidth = clamp(Number(headBaseWidthInput.value) || 14, 1, 200);
+        a.headLength = clamp(Number(headLengthInput.value) || 46, 4, 200);
+        a.headShape = clamp(Number(headShapeInput.value) || 0, 0, 1);
+        a.earsEnabled = earsEnabledInput.checked;
+        a.earSpread = clamp(Number(earSpreadInput.value) || 0, 0, 300);
+        a.earForward = clamp(Number(earForwardInput.value) || 0, -100, 200);
+        a.glowEnabled = glowEnabledInput.checked;
+        a.glowBlur = clamp(Number(glowBlurInput.value) || 0, 0, 60);
+        a.glowColor = glowColorInput.value;
+        a.strokeEnabled = strokeEnabledInput.checked;
+        a.strokeWidth = clamp(Number(strokeWidthInput.value) || 0, 0, 10);
+        a.strokeColor = strokeColorInput.value;
+        a.strokeOpacity = clamp(Number(strokeOpacityInput.value) || 0, 0, 1);
+        a.strokeDashed = strokeDashedInput.checked;
+        a.color = colorInput.value;
+        a.opacity = clamp(Number(opacityInput.value) || 0.95, 0.1, 1.0);
+        a.smoothAmount = clamp(Number(smoothAmountInput.value) || 0.6, 0, 1);
+
+        glowBlurVal.textContent = a.glowBlur;
+        strokeWidthVal.textContent = a.strokeWidth.toFixed(1);
+        strokeOpacityVal.textContent = a.strokeOpacity.toFixed(2);
+        opacityVal.textContent = a.opacity.toFixed(2);
+        smoothVal.textContent = a.smoothAmount.toFixed(2);
+
+        const earsOn = a.earsEnabled;
+        earSpreadInput.disabled = !earsOn;
+        earForwardInput.disabled = !earsOn;
+        glowBlurInput.disabled = !a.glowEnabled;
+        glowColorInput.disabled = !a.glowEnabled;
+        strokeWidthInput.disabled = !a.strokeEnabled;
+        strokeColorInput.disabled = !a.strokeEnabled;
+        strokeOpacityInput.disabled = !a.strokeEnabled;
+        strokeDashedInput.disabled = !a.strokeEnabled;
+
+        if (a.stemMode === 'smooth') {
+            recalcAutoHandles(a.points, 0.6 + 0.4 * a.smoothAmount);
+        }
+        drawAll();
+    }
+
+    [baseWidthInput, headBaseWidthInput, headLengthInput, headShapeInput,
+     earSpreadInput, earForwardInput, glowBlurInput, strokeWidthInput,
+     strokeOpacityInput, opacityInput, smoothAmountInput].forEach(el => {
+        el.addEventListener('input', updateSelectedFromUI);
+    });
+    [earsEnabledInput, glowEnabledInput, strokeEnabledInput, strokeDashedInput].forEach(el => {
+        el.addEventListener('change', updateSelectedFromUI);
+    });
+    [glowColorInput, strokeColorInput, colorInput].forEach(el => {
+        el.addEventListener('input', updateSelectedFromUI);
+    });
+
+    autoSmoothInput.addEventListener('change', () => {
+        if (selectedIndex < 0 || selectedIndex >= arrows.length) return;
+        const a = arrows[selectedIndex];
+        setAutoForAll(a, autoSmoothInput.checked);
+        drawAll();
+    });
+
+    stemModeGroup.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn || btn.disabled) return;
+        if (selectedIndex < 0 || selectedIndex >= arrows.length) return;
+        const mode = btn.dataset.mode;
+        const a = arrows[selectedIndex];
+        a.stemMode = mode;
+        if (mode === 'smooth') {
+            if (a.points.every(p => p.auto)) {
+                recalcAutoHandles(a.points, 0.6 + 0.4 * a.smoothAmount);
+            }
+        }
+        setStemModeUI(mode);
+        drawAll();
+    });
+
+    // ---- Кнопка "Рисовать" (новая стрелка) ----
+    // Клик — включает режим. Повторный клик — выключает.
+    newArrowBtn.addEventListener('click', () => {
+        if (newArrowMode) {
+            // Отменяем режим
+            newArrowMode = false;
+            drawingState = null;
+            newArrowBtn.classList.remove('toggle-active');
+            statusMsg.textContent = 'Режим рисования отключён';
+            drawAll();
+            return;
+        }
+        // Включаем режим
+        appendMode = false;
+        appendBtn.classList.remove('toggle-active');
+        selectedIndex = -1;
+        newArrowMode = true;
+        newArrowBtn.classList.add('toggle-active');
+        syncUIFromSelection();
+        statusMsg.textContent = 'Кликните по холсту — начало новой стрелки';
+        drawAll();
+    });
+
+    // ---- Кнопка "Дорисовать" ----
+    // Клик — включает, повторный — выключает.
+    appendBtn.addEventListener('click', () => {
+        if (selectedIndex < 0) return;
+
+        if (appendMode) {
+            // Отключаем
+            appendMode = false;
+            appendBtn.classList.remove('toggle-active');
+            statusMsg.textContent = 'Дорисовка завершена';
+            drawAll();
+            return;
+        }
+        // Включаем
+        newArrowMode = false;
+        newArrowBtn.classList.remove('toggle-active');
+        drawingState = null;
+        appendMode = true;
+        appendBtn.classList.add('toggle-active');
+        statusMsg.textContent = 'Дорисовка: кликните для добавления узлов, повторный клик по кнопке / ПКМ / Esc — завершить';
+        drawAll();
+    });
+
+    deleteNodeBtn.addEventListener('click', () => {
+        if (selectedIndex < 0) return;
+        const a = arrows[selectedIndex];
+        if (a.points.length <= 2) return;
+        a.points.pop();
+        if (a.stemMode === 'smooth') recalcAutoHandles(a.points, 0.6 + 0.4 * a.smoothAmount);
+        syncUIFromSelection();
+        drawAll();
+    });
+
+    deleteBtn.addEventListener('click', () => {
+        if (selectedIndex >= 0 && selectedIndex < arrows.length) {
+            arrows.splice(selectedIndex, 1);
+            selectedIndex = -1;
+            syncUIFromSelection();
+            statusMsg.textContent = 'Стрелка удалена';
+            drawAll();
+        }
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (drawingState) {
+                drawingState = null;
+                newArrowMode = false;
+                newArrowBtn.classList.remove('toggle-active');
+                mousePos = null;
+                statusMsg.textContent = 'Рисование отменено';
+                drawAll();
+            } else if (newArrowMode) {
+                newArrowMode = false;
+                newArrowBtn.classList.remove('toggle-active');
+                statusMsg.textContent = 'Режим рисования отключён';
+                drawAll();
+            } else if (appendMode) {
+                appendMode = false;
+                appendBtn.classList.remove('toggle-active');
+                statusMsg.textContent = 'Дорисовка завершена';
+                drawAll();
+            } else if (selectedIndex >= 0) {
+                selectedIndex = -1;
+                syncUIFromSelection();
+                drawAll();
+            }
+        }
+        if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIndex >= 0) {
+            if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+            e.preventDefault();
+            arrows.splice(selectedIndex, 1);
+            selectedIndex = -1;
+            syncUIFromSelection();
+            drawAll();
+        }
+    });
+
+    // ---- Мышь ----
+    function getMouseCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
+
+    canvas.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        const pos = getMouseCoords(e);
+        if (drawingState) { finishDrawing(); return; }
+
+        if (selectedIndex >= 0 && !newArrowMode && !appendMode) {
+            const seg = findSegmentAt(pos);
+            if (seg) {
+                const a = arrows[seg.arrowIndex];
+                const p0 = a.points[seg.segIndex];
+                const p3 = a.points[seg.segIndex + 1];
+                let px, py;
+                if (a.stemMode === 'smooth') {
+                    const c1x = p0.hOutX, c1y = p0.hOutY;
+                    const c2x = p3.hInX, c2y = p3.hInY;
+                    const t = seg.t;
+                    const t2 = t * t, t3 = t2 * t;
+                    const mt = 1 - t, mt2 = mt * mt, mt3 = mt2 * mt;
+                    px = mt3 * p0.x + 3 * mt2 * t * c1x + 3 * mt * t2 * c2x + t3 * p3.x;
+                    py = mt3 * p0.y + 3 * mt2 * t * c1y + 3 * mt * t2 * c2y + t3 * p3.y;
+                } else {
+                    px = p0.x + (p3.x - p0.x) * seg.t;
+                    py = p0.y + (p3.y - p0.y) * seg.t;
+                }
+                const newNode = makeNode(px, py);
+                a.points.splice(seg.segIndex + 1, 0, newNode);
+                if (a.stemMode === 'smooth') recalcAutoHandles(a.points, 0.6 + 0.4 * a.smoothAmount);
+                syncUIFromSelection();
+                statusMsg.textContent = 'Узел добавлен';
+                drawAll();
+            }
+        }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        const pos = getMouseCoords(e);
+
+        // 1. Режим рисования новой стрелки
+        if (newArrowMode) {
+            if (!drawingState) {
+                // Первая точка
+                drawingState = { points: [makeNode(pos.x, pos.y)] };
+                statusMsg.textContent = 'Кликните ещё раз для второй точки';
+            } else {
+                drawingState.points.push(makeNode(pos.x, pos.y));
+                statusMsg.textContent = `Точек: ${drawingState.points.length} — кликните для добавления, ПКМ / Esc — завершить`;
+            }
+            drawAll();
+            return;
+        }
+
+        // 2. Режим дорисовки
+        if (appendMode && selectedIndex >= 0 && selectedIndex < arrows.length) {
+            const a = arrows[selectedIndex];
+            a.points.push(makeNode(pos.x, pos.y));
+            if (a.stemMode === 'smooth') recalcAutoHandles(a.points, 0.6 + 0.4 * a.smoothAmount);
+            syncUIFromSelection();
+            statusMsg.textContent = `Узлов: ${a.points.length} — кликайте ещё, повторный клик по кнопке / ПКМ / Esc — завершить`;
+            drawAll();
+            return;
+        }
+
+        // 3. Ручки сглаживания
+        const handleHit = findHandleAt(pos);
+        if (handleHit) {
+            dragState = { type: 'handle', ...handleHit };
+            arrows[handleHit.arrowIndex].points[handleHit.pointIndex].auto = false;
+            autoSmoothInput.checked = false;
+            canvas.style.cursor = 'grabbing';
+            return;
+        }
+
+        // 4. Опорные точки выделенной
+        if (selectedIndex >= 0 && selectedIndex < arrows.length) {
+            const arrow = arrows[selectedIndex];
+            for (let j = 0; j < arrow.points.length; j++) {
+                if (distance(arrow.points[j], pos) <= 10) {
+                    if (e.shiftKey && arrow.points.length > 2) {
+                        arrow.points.splice(j, 1);
+                        if (arrow.stemMode === 'smooth') recalcAutoHandles(arrow.points, 0.6 + 0.4 * arrow.smoothAmount);
+                        syncUIFromSelection();
+                        statusMsg.textContent = 'Узел удалён (Shift+клик)';
+                        drawAll();
+                        return;
+                    }
+                    dragState = { type: 'node', arrowIndex: selectedIndex, pointIndex: j };
+                    canvas.style.cursor = 'grabbing';
+                    return;
+                }
+            }
+        }
+
+        // 5. Любая точка любой стрелки
+        const ptHit = findPointAt(pos);
+        if (ptHit) {
+            selectedIndex = ptHit.arrowIndex;
+            syncUIFromSelection();
+            dragState = { type: 'node', arrowIndex: ptHit.arrowIndex, pointIndex: ptHit.pointIndex };
+            canvas.style.cursor = 'grabbing';
+            drawAll();
+            return;
+        }
+
+        // 6. Стрелка — выделяем
+        const arrowHit = findArrowAt(pos);
+        if (arrowHit >= 0) {
+            selectedIndex = arrowHit;
+            syncUIFromSelection();
+            drawAll();
+            return;
+        }
+
+        // 7. Пустое место — только снимаем выделение.
+        // Новая стрелка НЕ создаётся. Нужно нажать кнопку "Рисовать".
+        if (selectedIndex !== -1) {
+            selectedIndex = -1;
+            syncUIFromSelection();
+            statusMsg.textContent = 'Выделение снято. Нажмите «Рисовать» для новой стрелки.';
+            drawAll();
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        const pos = getMouseCoords(e);
+        mousePos = { x: pos.x, y: pos.y };
+
+        if (dragState) {
+            if (dragState.type === 'node') {
+                const { arrowIndex, pointIndex } = dragState;
+                if (arrowIndex >= 0 && arrowIndex < arrows.length) {
+                    const arrow = arrows[arrowIndex];
+                    if (pointIndex >= 0 && pointIndex < arrow.points.length) {
+                        arrow.points[pointIndex].x = pos.x;
+                        arrow.points[pointIndex].y = pos.y;
+                        if (arrow.stemMode === 'smooth') {
+                            recalcAutoHandles(arrow.points, 0.6 + 0.4 * arrow.smoothAmount);
+                        }
+                    }
+                }
+            } else if (dragState.type === 'handle') {
+                const { arrowIndex, pointIndex, handle } = dragState;
+                const arrow = arrows[arrowIndex];
+                const node = arrow.points[pointIndex];
+                if (handle === 'out') {
+                    node.hOutX = pos.x;
+                    node.hOutY = pos.y;
+                    node.hInX = node.x - (pos.x - node.x);
+                    node.hInY = node.y - (pos.y - node.y);
+                } else {
+                    node.hInX = pos.x;
+                    node.hInY = pos.y;
+                    node.hOutX = node.x - (pos.x - node.x);
+                    node.hOutY = node.y - (pos.y - node.y);
+                }
+                node.auto = false;
+            }
+            drawAll();
+            return;
+        }
+
+        if (drawingState || newArrowMode) { drawAll(); return; }
+
+        const handleHit = findHandleAt(pos);
+        if (handleHit) { canvas.style.cursor = 'grab'; return; }
+
+        const ptHit = findPointAt(pos);
+        if (ptHit) {
+            canvas.style.cursor = e.shiftKey ? 'not-allowed' : 'grab';
+            return;
+        }
+
+        if (appendMode) { canvas.style.cursor = 'copy'; return; }
+        if (findArrowAt(pos) >= 0) { canvas.style.cursor = 'pointer'; return; }
+        canvas.style.cursor = 'default';
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        if (dragState) {
+            dragState = null;
+            canvas.style.cursor = 'default';
+            syncUIFromSelection();
+        }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+        mousePos = null;
+        if (dragState) dragState = null;
+        drawAll();
+    });
+
+    canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (drawingState) {
+            finishDrawing();
+        } else if (appendMode) {
+            appendMode = false;
+            appendBtn.classList.remove('toggle-active');
+            statusMsg.textContent = 'Дорисовка завершена';
+            drawAll();
+        }
+    });
+
+    function finishDrawing() {
+        if (!drawingState) return;
+        if (drawingState.points.length >= 2) {
+            const newArrow = makeArrowFromDrawing();
+            arrows.push(newArrow);
+            selectedIndex = arrows.length - 1;
+            statusMsg.textContent = 'Стрелка создана. Нажмите «Рисовать» для следующей.';
+            drawingState = null;
+            newArrowMode = false;
+            newArrowBtn.classList.remove('toggle-active');
+            syncUIFromSelection();
+        } else {
+            drawingState = null;
+        }
+        drawAll();
+    }
+
+    function makeArrowFromDrawing() {
+        const pts = drawingState.points.slice();
+        const a = {
+            points: pts,
+            baseWidth: clamp(Number(baseWidthInput.value) || 30, 2, 200),
+            headBaseWidth: clamp(Number(headBaseWidthInput.value) || 14, 1, 200),
+            headLength: clamp(Number(headLengthInput.value) || 46, 4, 200),
+            headShape: clamp(Number(headShapeInput.value) || 0, 0, 1),
+            earsEnabled: earsEnabledInput.checked,
+            earSpread: clamp(Number(earSpreadInput.value) || 0, 0, 300),
+            earForward: clamp(Number(earForwardInput.value) || 0, -100, 200),
+            glowEnabled: glowEnabledInput.checked,
+            glowBlur: clamp(Number(glowBlurInput.value) || 0, 0, 60),
+            glowColor: glowColorInput.value,
+            strokeEnabled: strokeEnabledInput.checked,
+            strokeWidth: clamp(Number(strokeWidthInput.value) || 0, 0, 10),
+            strokeColor: strokeColorInput.value,
+            strokeOpacity: clamp(Number(strokeOpacityInput.value) || 0, 0, 1),
+            strokeDashed: strokeDashedInput.checked,
+            color: colorInput.value,
+            opacity: clamp(Number(opacityInput.value) || 0.95, 0.1, 1.0),
+            stemMode: 'sharp',
+            smoothAmount: clamp(Number(smoothAmountInput.value) || 0.6, 0, 1)
+        };
+        recalcAutoHandles(a.points, 0.6 + 0.4 * a.smoothAmount);
+        return a;
+    }
+
+    // ---- Отрисовка ----
+    function drawAll() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Сетка
+        ctx.save();
+        ctx.strokeStyle = '#272a3850';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 40) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+        }
+        for (let i = 0; i < canvas.height; i += 40) {
+            ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+        }
+        ctx.restore();
+
+        for (let idx = 0; idx < arrows.length; idx++) {
+            const arrow = arrows[idx];
+            const poly = buildArrowPolygon(arrow);
+            if (!poly || poly.length < 3) continue;
+
+            const isSelected = (idx === selectedIndex);
+
+            // Заливка + свечение
+            ctx.save();
+            ctx.globalAlpha = arrow.opacity;
+            ctx.fillStyle = arrow.color;
+
+            if (arrow.glowEnabled && arrow.glowBlur > 0) {
+                ctx.shadowColor = arrow.glowColor;
+                ctx.shadowBlur = arrow.glowBlur;
+            } else if (isSelected) {
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 14;
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(poly[0].x, poly[0].y);
+            for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i].x, poly[i].y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            // Обводка
+            if (arrow.strokeEnabled && arrow.strokeWidth > 0) {
+                ctx.save();
+                ctx.globalAlpha = arrow.strokeOpacity;
+                ctx.strokeStyle = arrow.strokeColor;
+                ctx.lineWidth = arrow.strokeWidth;
+                ctx.lineJoin = 'round';
+                if (arrow.strokeDashed) {
+                    const dash = Math.max(4, arrow.strokeWidth * 4);
+                    const gap = Math.max(3, arrow.strokeWidth * 3);
+                    ctx.setLineDash([dash, gap]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+                ctx.beginPath();
+                ctx.moveTo(poly[0].x, poly[0].y);
+                for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i].x, poly[i].y);
+                ctx.closePath();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Подсветка выделения
+            if (isSelected) {
+                ctx.save();
+                ctx.globalAlpha = 0.85;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(poly[0].x, poly[0].y);
+                for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i].x, poly[i].y);
+                ctx.closePath();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Узлы и ручки
+            if (isSelected) {
+                ctx.save();
+
+                if (arrow.stemMode === 'smooth') {
+                    ctx.strokeStyle = '#ffcc6688';
+                    ctx.lineWidth = 1.3;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    const pts = arrow.points;
+                    for (let i = 0; i < pts.length - 1; i++) {
+                        const p0 = pts[i], p3 = pts[i + 1];
+                        const c1x = p0.hOutX, c1y = p0.hOutY;
+                        const c2x = p3.hInX, c2y = p3.hInY;
+                        const SAMPLES = 15;
+                        if (i === 0) ctx.moveTo(p0.x, p0.y);
+                        for (let s = 1; s <= SAMPLES; s++) {
+                            const t = s / SAMPLES;
+                            const t2 = t * t, t3 = t2 * t;
+                            const mt = 1 - t, mt2 = mt * mt, mt3 = mt2 * mt;
+                            const x = mt3 * p0.x + 3 * mt2 * t * c1x + 3 * mt * t2 * c2x + t3 * p3.x;
+                            const y = mt3 * p0.y + 3 * mt2 * t * c1y + 3 * mt * t2 * c2y + t3 * p3.y;
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    for (let j = 0; j < arrow.points.length; j++) {
+                        const p = arrow.points[j];
+                        ctx.strokeStyle = '#88aaff88';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(p.hInX, p.hInY);
+                        ctx.lineTo(p.x, p.y);
+                        ctx.lineTo(p.hOutX, p.hOutY);
+                        ctx.stroke();
+
+                        const r = 5;
+                        ctx.beginPath();
+                        ctx.arc(p.hInX, p.hInY, r, 0, 2 * Math.PI);
+                        ctx.fillStyle = p.auto ? '#ffaa6688' : '#ff8866';
+                        ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(p.hOutX, p.hOutY, r, 0, 2 * Math.PI);
+                        ctx.fillStyle = p.auto ? '#88ddff88' : '#66ccff';
+                        ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+
+                for (let j = 0; j < arrow.points.length; j++) {
+                    const p = arrow.points[j];
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 6.5, 0, 2 * Math.PI);
+                    ctx.fillStyle = j === 0 ? '#aaffaa'
+                                  : (j === arrow.points.length - 1 ? '#ffaa66' : '#ffdd99');
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = '#000000';
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+        // Предпросмотр новой стрелки
+        if (drawingState && mousePos && drawingState.points.length >= 1) {
+            const previewArrow = {
+                points: [...drawingState.points, makeNode(mousePos.x, mousePos.y)],
+                baseWidth: clamp(Number(baseWidthInput.value) || 30, 2, 200),
+                headBaseWidth: clamp(Number(headBaseWidthInput.value) || 14, 1, 200),
+                headLength: clamp(Number(headLengthInput.value) || 46, 4, 200),
+                headShape: clamp(Number(headShapeInput.value) || 0, 0, 1),
+                earsEnabled: earsEnabledInput.checked,
+                earSpread: clamp(Number(earSpreadInput.value) || 0, 0, 300),
+                earForward: clamp(Number(earForwardInput.value) || 0, -100, 200),
+                color: colorInput.value,
+                opacity: clamp(Number(opacityInput.value) || 0.95, 0.1, 1.0),
+                stemMode: 'sharp',
+                smoothAmount: clamp(Number(smoothAmountInput.value) || 0.6, 0, 1),
+                glowEnabled: glowEnabledInput.checked,
+                glowBlur: clamp(Number(glowBlurInput.value) || 0, 0, 60),
+                glowColor: glowColorInput.value,
+                strokeEnabled: strokeEnabledInput.checked,
+                strokeWidth: clamp(Number(strokeWidthInput.value) || 0, 0, 10),
+                strokeColor: strokeColorInput.value,
+                strokeOpacity: clamp(Number(strokeOpacityInput.value) || 0, 0, 1),
+                strokeDashed: strokeDashedInput.checked
+            };
+            const poly = buildArrowPolygon(previewArrow);
+            if (poly && poly.length > 2) {
+                ctx.save();
+                ctx.globalAlpha = previewArrow.opacity * 0.5;
+                ctx.fillStyle = previewArrow.color;
+                if (previewArrow.glowEnabled && previewArrow.glowBlur > 0) {
+                    ctx.shadowColor = previewArrow.glowColor;
+                    ctx.shadowBlur = previewArrow.glowBlur;
+                } else {
+                    ctx.shadowColor = previewArrow.color;
+                    ctx.shadowBlur = 12;
+                }
+                ctx.beginPath();
+                ctx.moveTo(poly[0].x, poly[0].y);
+                for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i].x, poly[i].y);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            ctx.save();
+            ctx.globalAlpha = 0.6;
+            ctx.strokeStyle = previewArrow.color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.moveTo(drawingState.points[0].x, drawingState.points[0].y);
+            for (let i = 1; i < drawingState.points.length; i++) {
+                ctx.lineTo(drawingState.points[i].x, drawingState.points[i].y);
+            }
+            ctx.lineTo(mousePos.x, mousePos.y);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.save();
+            for (let i = 0; i < drawingState.points.length; i++) {
+                const p = drawingState.points[i];
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = i === 0 ? '#aaffaa' : '#ffdd99';
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = '#000';
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // Предпросмотр дорисовки
+        if (appendMode && selectedIndex >= 0 && selectedIndex < arrows.length && mousePos) {
+            const a = arrows[selectedIndex];
+            const last = a.points[a.points.length - 1];
+            ctx.save();
+            ctx.strokeStyle = '#7f8cff';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(last.x, last.y);
+            ctx.lineTo(mousePos.x, mousePos.y);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(mousePos.x, mousePos.y, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#7f8cff';
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#7f8cff';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.restore();
+
+            if (a.points.length >= 1) {
+                const previewPts = [...a.points, makeNode(mousePos.x, mousePos.y)];
+                const previewArrow = { ...a, points: previewPts };
+                if (previewArrow.stemMode === 'smooth') {
+                    recalcAutoHandles(previewArrow.points, 0.6 + 0.4 * previewArrow.smoothAmount);
+                }
+                const pPoly = buildArrowPolygon(previewArrow);
+                if (pPoly) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.35;
+                    ctx.fillStyle = a.color;
+                    ctx.beginPath();
+                    ctx.moveTo(pPoly[0].x, pPoly[0].y);
+                    for (let i = 1; i < pPoly.length; i++) ctx.lineTo(pPoly[i].x, pPoly[i].y);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+    }
+
+    // ---- Демо ----
+    const demo1 = {
+        points: [
+            makeNode(130, 320),
+            makeNode(320, 240),
+            makeNode(500, 320),
+            makeNode(680, 220)
+        ],
+        baseWidth: 30,
+        headBaseWidth: 14,
+        headLength: 46,
+        headShape: 0,
+        earsEnabled: true,
+        earSpread: 70,
+        earForward: 0,
+        glowEnabled: true,
+        glowBlur: 14,
+        glowColor: '#7f8cff',
+        strokeEnabled: true,
+        strokeWidth: 1.2,
+        strokeColor: '#ffffff',
+        strokeOpacity: 1,
+        strokeDashed: false,
+        color: '#7f8cff',
+        opacity: 0.95,
+        stemMode: 'sharp',
+        smoothAmount: 0.6
+    };
+    const demo2 = {
+        points: [
+            makeNode(130, 140),
+            makeNode(320, 60),
+            makeNode(500, 140),
+            makeNode(680, 40)
+        ],
+        baseWidth: 30,
+        headBaseWidth: 14,
+        headLength: 46,
+        headShape: 0,
+        earsEnabled: true,
+        earSpread: 70,
+        earForward: 0,
+        glowEnabled: true,
+        glowBlur: 18,
+        glowColor: '#6fdc8c',
+        strokeEnabled: true,
+        strokeWidth: 1.5,
+        strokeColor: '#e8ffe8',
+        strokeOpacity: 0.9,
+        strokeDashed: true,
+        color: '#6fdc8c',
+        opacity: 0.95,
+        stemMode: 'smooth',
+        smoothAmount: 0.85
+    };
+    recalcAutoHandles(demo1.points, 0.6 + 0.4 * demo1.smoothAmount);
+    recalcAutoHandles(demo2.points, 0.6 + 0.4 * demo2.smoothAmount);
+    arrows.push(demo1, demo2);
+
+    selectedIndex = -1;
+    syncUIFromSelection();
+    drawAll();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Черчение полигонов + линейка</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #1e2b3a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 16px;
+        }
+        .app {
+            background: #0f1a24;
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: fit-content;
+        }
+        .canvas-wrapper {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px #2d3f4e;
+            background: #101b24;
+        }
+        canvas {
+            display: block;
+            width: 1000px;
+            height: 600px;
+            cursor: crosshair;
+            background: #101b24;
+        }
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 4px;
+        }
+        .btn {
+            background: #1e2e3c;
+            border: none;
+            color: #d4e1ed;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 1px solid #2f4050;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            white-space: nowrap;
+        }
+        .btn:hover:not(:disabled) {
+            background: #283d4e;
+            border-color: #4a6377;
+            color: white;
+        }
+        .btn.active {
+            background: #2d7a9b;
+            border-color: #4aa5cc;
+            color: white;
+            box-shadow: 0 0 12px #2d7a9b80;
+        }
+        .btn.danger {
+            background: #5f2e2e;
+            border-color: #8b3e3e;
+            color: #f0c0c0;
+        }
+        .btn.danger:hover:not(:disabled) {
+            background: #7a3a3a;
+            border-color: #b55;
+            color: white;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .info-panel {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            color: #b8d0e0;
+            background: #0c141c;
+            padding: 12px 20px;
+            border-radius: 40px;
+            border: 1px solid #1e2e3a;
+            font-size: 15px;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .badge {
+            background: #1d3445;
+            padding: 4px 12px;
+            border-radius: 40px;
+            color: #aad0f0;
+            font-weight: 600;
+        }
+        .tool-group {
+            display: flex;
+            gap: 8px;
+            background: #0b131b;
+            padding: 6px;
+            border-radius: 48px;
+            border: 1px solid #1f2e3a;
+        }
+        .scale-hint {
+            font-size: 13px;
+            color: #7f9bb0;
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="toolbar">
+            <div class="tool-group">
+                <button id="modeNoneBtn" class="btn active">✋ Выбор</button>
+                <button id="modePolygonBtn" class="btn">⬡ Полигон</button>
+                <button id="modeRulerBtn" class="btn">📏 Линейка</button>
+            </div>
+            <button id="deleteSelectedBtn" class="btn danger" disabled>🗑 Удалить выбранное</button>
+            <button id="clearAllBtn" class="btn danger">✕ Очистить всё</button>
+            <button id="finishPolygonBtn" class="btn" disabled>✓ Завершить полигон</button>
+            <button id="resetZoomBtn" class="btn">⟲ Сброс зума</button>
+            <span class="scale-hint">1 px = <span id="scaleValue">10</span> м · Колесо — зум · Del — удалить</span>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="1000" height="600"></canvas>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-item">
+                <span>📐 Площадь:</span>
+                <span id="areaDisplay" class="badge">0.00 м²</span>
+            </div>
+            <div class="info-item">
+                <span>📏 Длина линии:</span>
+                <span id="lengthDisplay" class="badge">0.00 м</span>
+            </div>
+            <div class="info-item" id="hintItem">
+                <span>💡</span>
+                <span id="hintText">Выберите инструмент</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function(){
+            // ----- МАСШТАБ -----
+            const METERS_PER_WORLD_PX = 10;
+            let metersPerPixel = METERS_PER_WORLD_PX;
+
+            let zoomFactor = 1.0;
+            const MIN_ZOOM = 0.2;
+            const MAX_ZOOM = 10;
+            let zoomAnchor = { x: 500, y: 300 };
+
+            // ----- ЕДИНИЦЫ -----
+            const UNIT_STEPS_METERS = [
+                10, 20, 50, 100, 500,
+                1000, 2000, 5000,
+                10000, 20000, 50000,
+                100000, 200000, 500000,
+                1000000, 2000000, 5000000
+            ];
+            const MAX_SMALL_STEPS = 30;
+            const NEXT_UNIT_MAX_MAJOR = 4;
+
+            // ----- ХОЛСТ -----
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // ----- UI -----
+            const modeNoneBtn = document.getElementById('modeNoneBtn');
+            const modePolygonBtn = document.getElementById('modePolygonBtn');
+            const modeRulerBtn = document.getElementById('modeRulerBtn');
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+            const finishPolygonBtn = document.getElementById('finishPolygonBtn');
+            const resetZoomBtn = document.getElementById('resetZoomBtn');
+            const areaDisplay = document.getElementById('areaDisplay');
+            const lengthDisplay = document.getElementById('lengthDisplay');
+            const hintText = document.getElementById('hintText');
+            const scaleValueSpan = document.getElementById('scaleValue');
+
+            // ----- СОСТОЯНИЕ -----
+            let mode = 'none';
+
+            let polygons = [];
+            let currentPolygon = [];
+            let rulers = [];
+
+            let rulerStart = null;
+            let isDrawingRuler = false;
+            let currentMousePos = null;
+
+            let draggingNode = null;
+            let dragOffset = { x: 0, y: 0 };
+            let draggingRulerEnd = null;
+
+            let activeObj = null;
+
+            const HIT_RADIUS_PX = 10;
+
+            // ----- КООРДИНАТЫ -----
+            function worldToScreen(p) {
+                return {
+                    x: zoomAnchor.x + (p.x - zoomAnchor.x) * zoomFactor,
+                    y: zoomAnchor.y + (p.y - zoomAnchor.y) * zoomFactor
+                };
+            }
+            function screenToWorld(p) {
+                return {
+                    x: zoomAnchor.x + (p.x - zoomAnchor.x) / zoomFactor,
+                    y: zoomAnchor.y + (p.y - zoomAnchor.y) / zoomFactor
+                };
+            }
+
+            // ----- ФОРМАТЫ -----
+            function formatDistance(meters) {
+                if (meters < 1000) return `${meters.toFixed(1)} м`;
+                if (meters < 1000000) return `${(meters / 1000).toFixed(3)} км`;
+                return `${(meters / 1000000).toFixed(3)} тыс. км`;
+            }
+            function formatArea(m2) {
+                if (m2 < 1000000) return `${m2.toFixed(0)} м²`;
+                if (m2 < 1e9) return `${(m2 / 1e6).toFixed(3)} км²`;
+                return `${(m2 / 1e9).toFixed(3)} тыс. км²`;
+            }
+            function formatUnitLabel(meters) {
+                if (meters >= 1000000) {
+                    const t = meters / 1000000;
+                    return `${t % 1 === 0 ? t.toFixed(0) : t.toFixed(2)} тыс. км`;
+                } else if (meters >= 1000) {
+                    const k = meters / 1000;
+                    return `${k % 1 === 0 ? k.toFixed(0) : k.toFixed(2)} км`;
+                }
+                return `${meters % 1 === 0 ? meters.toFixed(0) : meters.toFixed(1)} м`;
+            }
+
+            // ----- ГЕОМЕТРИЯ -----
+            function polygonAreaPx(pts) {
+                if (pts.length < 3) return 0;
+                let a = 0;
+                for (let i = 0; i < pts.length; i++) {
+                    const j = (i + 1) % pts.length;
+                    a += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+                }
+                return Math.abs(a) / 2;
+            }
+            function polygonAreaM2(pts) {
+                return polygonAreaPx(pts) * METERS_PER_WORLD_PX * METERS_PER_WORLD_PX;
+            }
+            function distPx(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
+            function distMeters(a, b) { return distPx(a, b) * METERS_PER_WORLD_PX; }
+
+            // ----- ИНФОПАНЕЛЬ -----
+            function updateAreaDisplay() {
+                let total = 0;
+                for (const p of polygons) total += polygonAreaM2(p);
+                if (currentPolygon.length >= 3) total += polygonAreaM2(currentPolygon);
+                areaDisplay.textContent = formatArea(total);
+            }
+            function updateLengthDisplay() {
+                if (isDrawingRuler && rulerStart && currentMousePos) {
+                    lengthDisplay.textContent = formatDistance(distMeters(rulerStart, currentMousePos));
+                } else if (activeObj && activeObj.type === 'ruler') {
+                    const r = rulers[activeObj.index];
+                    if (r) lengthDisplay.textContent = formatDistance(distMeters(r.start, r.end));
+                    else lengthDisplay.textContent = '0.00 м';
+                } else if (rulers.length > 0) {
+                    const r = rulers[rulers.length - 1];
+                    lengthDisplay.textContent = formatDistance(distMeters(r.start, r.end));
+                } else {
+                    lengthDisplay.textContent = '0.00 м';
+                }
+            }
+            function updateDeleteBtn() {
+                deleteSelectedBtn.disabled = !(mode === 'none' && activeObj);
+            }
+            function updateHint() {
+                if (mode === 'none') {
+                    if (activeObj) {
+                        if (activeObj.type === 'polygon') {
+                            hintText.textContent = 'Двойной клик по узлу — удалить, по линии — добавить узел. Del — удалить объект.';
+                        } else {
+                            hintText.textContent = 'Тяните концы линейки. Del — удалить линейку. Клик по пустому — снять выделение.';
+                        }
+                    } else {
+                        hintText.textContent = 'Кликните по полигону или линейке, чтобы выбрать. Shift+клик — удалить.';
+                    }
+                    finishPolygonBtn.disabled = true;
+                    updateDeleteBtn();
+                    return;
+                }
+                if (mode === 'polygon') {
+                    if (currentPolygon.length === 0) {
+                        hintText.textContent = 'Кликните точки. Enter или ПКМ — завершить. Shift+клик — удалить точку.';
+                    } else {
+                        hintText.textContent = `Точек: ${currentPolygon.length}. Enter или ПКМ — завершить. Shift+клик — удалить.`;
+                    }
+                    finishPolygonBtn.disabled = !(currentPolygon.length >= 3);
+                    updateDeleteBtn();
+                    return;
+                }
+                if (isDrawingRuler) {
+                    hintText.textContent = 'Кликните во второй точке, чтобы зафиксировать линейку';
+                } else {
+                    hintText.textContent = 'Кликните — начало новой линейки. Shift+клик по концу — удалить существующую.';
+                }
+                finishPolygonBtn.disabled = true;
+                updateDeleteBtn();
+            }
+
+            // ----- ПОИСК -----
+            function findNodeAt(wp) {
+                if (mode !== 'none' || !activeObj || activeObj.type !== 'polygon') return null;
+                const r = HIT_RADIUS_PX / zoomFactor;
+                const poly = polygons[activeObj.index];
+                if (!poly) return null;
+                for (let i = 0; i < poly.length; i++) {
+                    if (Math.hypot(poly[i].x - wp.x, poly[i].y - wp.y) <= r)
+                        return { polyIndex: activeObj.index, nodeIndex: i };
+                }
+                return null;
+            }
+
+            function findRulerEndAt(wp) {
+                if (mode !== 'none' || !activeObj || activeObj.type !== 'ruler') return null;
+                const r = HIT_RADIUS_PX / zoomFactor;
+                const ru = rulers[activeObj.index];
+                if (!ru) return null;
+                if (Math.hypot(ru.start.x - wp.x, ru.start.y - wp.y) <= r)
+                    return { rulerIndex: activeObj.index, end: 'start' };
+                if (Math.hypot(ru.end.x - wp.x, ru.end.y - wp.y) <= r)
+                    return { rulerIndex: activeObj.index, end: 'end' };
+                return null;
+            }
+
+            function findObjectAt(wp) {
+                const r = HIT_RADIUS_PX / zoomFactor;
+                for (let ri = rulers.length - 1; ri >= 0; ri--) {
+                    const ru = rulers[ri];
+                    if (Math.hypot(ru.start.x - wp.x, ru.start.y - wp.y) <= r)
+                        return { type: 'ruler', index: ri };
+                    if (Math.hypot(ru.end.x - wp.x, ru.end.y - wp.y) <= r)
+                        return { type: 'ruler', index: ri };
+                    if (pointToSegmentDist(wp, ru.start, ru.end) <= r)
+                        return { type: 'ruler', index: ri };
+                }
+                for (let pi = polygons.length - 1; pi >= 0; pi--) {
+                    const poly = polygons[pi];
+                    if (poly.length < 3) continue;
+                    for (let i = 0; i < poly.length; i++) {
+                        if (Math.hypot(poly[i].x - wp.x, poly[i].y - wp.y) <= r)
+                            return { type: 'polygon', index: pi };
+                    }
+                    for (let i = 0; i < poly.length; i++) {
+                        const j = (i + 1) % poly.length;
+                        if (pointToSegmentDist(wp, poly[i], poly[j]) <= r)
+                            return { type: 'polygon', index: pi };
+                    }
+                    if (pointInPolygon(wp, poly))
+                        return { type: 'polygon', index: pi };
+                }
+                return null;
+            }
+
+            function findNearestEdgePoint(wp, poly) {
+                let best = null;
+                let bestDist = Infinity;
+                for (let i = 0; i < poly.length; i++) {
+                    const j = (i + 1) % poly.length;
+                    const a = poly[i];
+                    const b = poly[j];
+                    const dx = b.x - a.x;
+                    const dy = b.y - a.y;
+                    const len2 = dx * dx + dy * dy;
+                    let t = 0;
+                    if (len2 > 0) {
+                        t = ((wp.x - a.x) * dx + (wp.y - a.y) * dy) / len2;
+                        t = Math.max(0, Math.min(1, t));
+                    }
+                    const projX = a.x + t * dx;
+                    const projY = a.y + t * dy;
+                    const d = Math.hypot(wp.x - projX, wp.y - projY);
+                    if (d < bestDist) {
+                        bestDist = d;
+                        best = { edgeIndex: i, point: { x: projX, y: projY }, dist: d };
+                    }
+                }
+                return best;
+            }
+
+            function pointToSegmentDist(p, a, b) {
+                const dx = b.x - a.x;
+                const dy = b.y - a.y;
+                const len2 = dx * dx + dy * dy;
+                if (len2 === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+                let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2;
+                t = Math.max(0, Math.min(1, t));
+                const projX = a.x + t * dx;
+                const projY = a.y + t * dy;
+                return Math.hypot(p.x - projX, p.y - projY);
+            }
+
+            function pointInPolygon(p, poly) {
+                let inside = false;
+                for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                    const xi = poly[i].x, yi = poly[i].y;
+                    const xj = poly[j].x, yj = poly[j].y;
+                    const intersect = ((yi > p.y) !== (yj > p.y)) &&
+                        (p.x < (xj - xi) * (p.y - yi) / (yj - yi) + xi);
+                    if (intersect) inside = !inside;
+                }
+                return inside;
+            }
+
+            function removeNode(ref) {
+                const poly = polygons[ref.polyIndex];
+                if (!poly) return;
+                poly.splice(ref.nodeIndex, 1);
+                if (poly.length < 3) {
+                    polygons.splice(ref.polyIndex, 1);
+                    if (activeObj && activeObj.type === 'polygon') {
+                        if (activeObj.index === ref.polyIndex) activeObj = null;
+                        else if (activeObj.index > ref.polyIndex) activeObj.index--;
+                    }
+                }
+            }
+
+            // ----- УДАЛЕНИЕ АКТИВНОГО ОБЪЕКТА -----
+            function deleteActiveObject() {
+                if (mode !== 'none' || !activeObj) return false;
+                if (activeObj.type === 'polygon') {
+                    const idx = activeObj.index;
+                    if (idx < 0 || idx >= polygons.length) { activeObj = null; return false; }
+                    polygons.splice(idx, 1);
+                    activeObj = null;
+                    draw();
+                    return true;
+                }
+                if (activeObj.type === 'ruler') {
+                    const idx = activeObj.index;
+                    if (idx < 0 || idx >= rulers.length) { activeObj = null; return false; }
+                    rulers.splice(idx, 1);
+                    activeObj = null;
+                    draw();
+                    return true;
+                }
+                return false;
+            }
+
+            // ----- ЗАВЕРШЕНИЕ ПОЛИГОНА -----
+            function finishCurrentPolygon() {
+                if (mode !== 'polygon') return false;
+                if (currentPolygon.length < 3) return false;
+
+                const newIdx = polygons.length;
+                polygons.push([...currentPolygon]);
+                currentPolygon = [];
+                setMode('none');
+                activeObj = { type: 'polygon', index: newIdx };
+                draw();
+                return true;
+            }
+
+            // ----- ОТРИСОВКА -----
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (let x = 0; x <= canvas.width; x += 20) {
+                    const major = (x % 100 === 0);
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.strokeStyle = major ? '#1a2c3a' : '#141f29';
+                    ctx.lineWidth = major ? 1.2 : 0.7;
+                    ctx.stroke();
+                }
+                for (let y = 0; y <= canvas.height; y += 20) {
+                    const major = (y % 100 === 0);
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.strokeStyle = major ? '#1a2c3a' : '#141f29';
+                    ctx.lineWidth = major ? 1.2 : 0.7;
+                    ctx.stroke();
+                }
+
+                for (let pi = 0; pi < polygons.length; pi++) {
+                    const poly = polygons[pi];
+                    if (poly.length < 3) continue;
+
+                    const isActive = mode === 'none' && activeObj && activeObj.type === 'polygon' && activeObj.index === pi;
+
+                    const sPts = poly.map(worldToScreen);
+                    ctx.beginPath();
+                    ctx.moveTo(sPts[0].x, sPts[0].y);
+                    for (let i = 1; i < sPts.length; i++) ctx.lineTo(sPts[i].x, sPts[i].y);
+                    ctx.closePath();
+                    ctx.fillStyle = isActive ? '#2d7a9b50' : '#2d7a9b30';
+                    ctx.fill();
+                    ctx.strokeStyle = isActive ? '#6cd0ff' : '#4aa5cc';
+                    ctx.lineWidth = isActive ? 3 : 2.5;
+                    ctx.stroke();
+
+                    if (isActive) {
+                        for (let i = 0; i < sPts.length; i++) {
+                            const sp = sPts[i];
+                            const isDrag = draggingNode && draggingNode.polyIndex === pi && draggingNode.nodeIndex === i;
+                            ctx.beginPath();
+                            ctx.arc(sp.x, sp.y, isDrag ? 8 : 6, 0, 2 * Math.PI);
+                            ctx.fillStyle = isDrag ? '#ffd060' : '#a0e0ff';
+                            ctx.fill();
+                            ctx.strokeStyle = '#0f1a24';
+                            ctx.lineWidth = 1.5;
+                            ctx.stroke();
+                        }
+                    }
+
+                    const area = polygonAreaM2(poly);
+                    if (area > 100) {
+                        const c = poly.reduce((s, p) => ({ x: s.x + p.x, y: s.y + p.y }), { x: 0, y: 0 });
+                        const cs = worldToScreen({ x: c.x / poly.length, y: c.y / poly.length });
+                        ctx.font = 'bold 14px "Segoe UI", Roboto, sans-serif';
+                        ctx.fillStyle = '#aad0f0';
+                        ctx.shadowColor = '#00000080';
+                        ctx.shadowBlur = 6;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(formatArea(area), cs.x, cs.y);
+                        ctx.shadowBlur = 0;
+                    }
+                }
+
+                if (mode === 'polygon' && currentPolygon.length > 0) {
+                    const sPts = currentPolygon.map(worldToScreen);
+                    ctx.beginPath();
+                    ctx.moveTo(sPts[0].x, sPts[0].y);
+                    for (let i = 1; i < sPts.length; i++) ctx.lineTo(sPts[i].x, sPts[i].y);
+                    ctx.strokeStyle = '#f0c060';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([8, 6]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    for (let i = 0; i < sPts.length; i++) {
+                        const sp = sPts[i];
+                        const isDrag = draggingNode && draggingNode.polyIndex === 'current' && draggingNode.nodeIndex === i;
+                        ctx.beginPath();
+                        ctx.arc(sp.x, sp.y, isDrag ? 8 : 5, 0, 2 * Math.PI);
+                        ctx.fillStyle = isDrag ? '#ffd060' : '#f0c060';
+                        ctx.fill();
+                        ctx.strokeStyle = '#0f1a24';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    }
+
+                    if (currentPolygon.length >= 3) {
+                        const area = polygonAreaM2(currentPolygon);
+                        const c = currentPolygon.reduce((s, p) => ({ x: s.x + p.x, y: s.y + p.y }), { x: 0, y: 0 });
+                        const cs = worldToScreen({ x: c.x / currentPolygon.length, y: c.y / currentPolygon.length });
+                        ctx.font = 'bold 14px "Segoe UI", Roboto, sans-serif';
+                        ctx.fillStyle = '#f0e0a0';
+                        ctx.shadowColor = '#00000080';
+                        ctx.shadowBlur = 6;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(formatArea(area), cs.x, cs.y);
+                        ctx.shadowBlur = 0;
+                    }
+                }
+
+                for (let i = 0; i < rulers.length; i++) {
+                    const r = rulers[i];
+                    const isActive = mode === 'none' && activeObj && activeObj.type === 'ruler' && activeObj.index === i;
+                    const dragStart = draggingRulerEnd && draggingRulerEnd.rulerIndex === i && draggingRulerEnd.end === 'start';
+                    const dragEnd = draggingRulerEnd && draggingRulerEnd.rulerIndex === i && draggingRulerEnd.end === 'end';
+                    drawRuler(r.start, r.end, false, dragStart, dragEnd, isActive, isActive);
+                }
+
+                if (mode === 'ruler' && isDrawingRuler && rulerStart && currentMousePos) {
+                    drawRuler(rulerStart, currentMousePos, true, false, false, false, true);
+                }
+
+                updateAreaDisplay();
+                updateLengthDisplay();
+                updateHint();
+                scaleValueSpan.textContent = METERS_PER_WORLD_PX.toFixed(0);
+            }
+
+            function drawRuler(start, end, isPreview, highlightStart, highlightEnd, isActive, showHandles) {
+                const sS = worldToScreen(start);
+                const eS = worldToScreen(end);
+                const dxS = eS.x - sS.x;
+                const dyS = eS.y - sS.y;
+                const lenS = Math.hypot(dxS, dyS);
+                if (lenS < 1) return;
+
+                const angle = Math.atan2(dyS, dxS);
+                const lenW = distPx(start, end);
+                const totalMeters = lenW * METERS_PER_WORLD_PX;
+
+                ctx.beginPath();
+                ctx.moveTo(sS.x, sS.y);
+                ctx.lineTo(eS.x, eS.y);
+                ctx.strokeStyle = isPreview ? '#f0c060' : (isActive ? '#ffe080' : '#e0b050');
+                ctx.lineWidth = isActive ? 4 : 3;
+                ctx.shadowColor = '#e0b05060';
+                ctx.shadowBlur = 8;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                const nx = dxS / lenS;
+                const ny = dyS / lenS;
+                const perpX = -ny;
+                const perpY = nx;
+
+                const metersPerScreenPx = METERS_PER_WORLD_PX / zoomFactor;
+
+                let majorMeters = UNIT_STEPS_METERS[0];
+                for (let idx = 0; idx < UNIT_STEPS_METERS.length; idx++) {
+                    const u = UNIT_STEPS_METERS[idx];
+                    const majorPxS = u / metersPerScreenPx;
+                    const smallPxS = majorPxS / 10;
+                    const smallOk = (lenS / smallPxS) <= MAX_SMALL_STEPS;
+
+                    let nextTooMany = false;
+                    if (idx + 1 < UNIT_STEPS_METERS.length) {
+                        const nextU = UNIT_STEPS_METERS[idx + 1];
+                        const nextPxS = nextU / metersPerScreenPx;
+                        if (lenS / nextPxS > NEXT_UNIT_MAX_MAJOR) nextTooMany = true;
+                    }
+                    majorMeters = u;
+                    if (smallOk && !nextTooMany) break;
+                }
+
+                const majorPxS = majorMeters / metersPerScreenPx;
+                const mediumPxS = majorPxS / 2;
+                const smallPxS = majorPxS / 10;
+
+                let baseTick;
+                if (lenS < 60) baseTick = 5;
+                else if (lenS < 120) baseTick = 7;
+                else if (lenS < 250) baseTick = 9;
+                else if (lenS < 450) baseTick = 11;
+                else baseTick = 13;
+
+                const majorTick = Math.max(4, Math.min(baseTick, majorPxS / 3));
+                const mediumTick = Math.max(3.5, majorTick * 0.7);
+                const smallTick = Math.max(3, majorTick * 0.55);
+
+                const drawSmall = smallPxS >= 2;
+                const drawMedium = mediumPxS >= 3;
+                const numSteps = Math.floor(lenS / smallPxS);
+
+                for (let i = 0; i <= numSteps; i++) {
+                    const dS = i * smallPxS;
+                    if (dS > lenS + 0.01) break;
+                    const px = sS.x + nx * dS;
+                    const py = sS.y + ny * dS;
+
+                    const isMajor = (i % 10 === 0);
+                    const isMedium = (i % 5 === 0) && !isMajor;
+                    if (!isMajor && !isMedium && !drawSmall) continue;
+                    if (isMedium && !drawMedium) continue;
+
+                    let tl, col, lw;
+                    if (isMajor) { tl = majorTick; col = '#f0d080'; lw = 2.2; }
+                    else if (isMedium) { tl = mediumTick; col = '#d0b060'; lw = 1.6; }
+                    else { tl = smallTick; col = '#b09040'; lw = 1.1; }
+
+                    ctx.beginPath();
+                    ctx.moveTo(px - perpX * tl, py - perpY * tl);
+                    ctx.lineTo(px + perpX * tl, py + perpY * tl);
+                    ctx.strokeStyle = col;
+                    ctx.lineWidth = lw;
+                    ctx.stroke();
+                }
+
+                const MIN_LABEL_DIST = 48;
+                let labelStep = majorPxS < MIN_LABEL_DIST ? 2 : 1;
+                if (majorPxS * labelStep >= MIN_LABEL_DIST) {
+                    const numMajor = Math.floor(lenS / majorPxS);
+                    for (let i = 0; i <= numMajor; i += labelStep) {
+                        const dS = i * majorPxS;
+                        if (dS > lenS + 0.01) break;
+                        const px = sS.x + nx * dS;
+                        const py = sS.y + ny * dS;
+                        const label = formatUnitLabel(i * majorMeters);
+
+                        const off = majorTick + 9;
+                        const lx = px - perpX * off;
+                        const ly = py - perpY * off;
+
+                        let ta = angle;
+                        if (ta > Math.PI/2) ta -= Math.PI;
+                        if (ta < -Math.PI/2) ta += Math.PI;
+
+                        ctx.save();
+                        ctx.translate(lx, ly);
+                        ctx.rotate(ta);
+                        ctx.font = 'bold 11px "Segoe UI", Roboto, sans-serif';
+                        ctx.fillStyle = '#f0e0b0';
+                        ctx.shadowColor = '#000000c0';
+                        ctx.shadowBlur = 5;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(label, 0, 0);
+                        ctx.restore();
+                        ctx.shadowBlur = 0;
+                    }
+                }
+
+                const midX = (sS.x + eS.x) / 2;
+                const midY = (sS.y + eS.y) / 2;
+                const totalOff = majorTick + 14;
+                const tlx = midX + perpX * totalOff;
+                const tly = midY + perpY * totalOff;
+
+                let ta = angle;
+                if (ta > Math.PI/2) ta -= Math.PI;
+                if (ta < -Math.PI/2) ta += Math.PI;
+
+                ctx.save();
+                ctx.translate(tlx, tly);
+                ctx.rotate(ta);
+                ctx.font = 'bold 14px "Segoe UI", Roboto, sans-serif';
+                ctx.fillStyle = isPreview ? '#ffe080' : (isActive ? '#ffe8a0' : '#f0d070');
+                ctx.shadowColor = '#000000c0';
+                ctx.shadowBlur = 8;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(formatDistance(totalMeters), 0, 0);
+                ctx.restore();
+                ctx.shadowBlur = 0;
+
+                if (showHandles || isPreview) {
+                    ctx.beginPath();
+                    ctx.arc(sS.x, sS.y, highlightStart ? 9 : (isActive ? 7 : 6), 0, 2 * Math.PI);
+                    ctx.fillStyle = highlightStart ? '#ffe080' : (isActive ? '#ffd080' : '#e0b050');
+                    ctx.fill();
+                    ctx.strokeStyle = '#0f1a24';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(eS.x, eS.y, highlightEnd ? 9 : (isActive ? 7 : 6), 0, 2 * Math.PI);
+                    if (isPreview) {
+                        ctx.fillStyle = '#101b24';
+                        ctx.fill();
+                        ctx.strokeStyle = '#f0c060';
+                        ctx.lineWidth = 2.5;
+                        ctx.stroke();
+                    } else {
+                        ctx.fillStyle = highlightEnd ? '#ffe080' : (isActive ? '#ffd080' : '#e0b050');
+                        ctx.fill();
+                        ctx.strokeStyle = '#0f1a24';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(sS.x, sS.y, 3, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#e0b050';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(eS.x, eS.y, 3, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#e0b050';
+                    ctx.fill();
+                }
+            }
+
+            // ----- МЫШЬ -----
+            function getScreenPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: (e.clientX - rect.left) * (canvas.width / rect.width),
+                    y: (e.clientY - rect.top) * (canvas.height / rect.height)
+                };
+            }
+            function getWorldPos(e) {
+                return screenToWorld(getScreenPos(e));
+            }
+
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                const wp = getWorldPos(e);
+
+                if (mode === 'polygon') return;
+
+                if (mode === 'ruler') {
+                    if (isDrawingRuler) return;
+                    const endRef = findRulerEndAt(wp);
+                    if (endRef) {
+                        draggingRulerEnd = endRef;
+                        canvas.style.cursor = 'grabbing';
+                        draw();
+                    }
+                    return;
+                }
+
+                if (mode === 'none' && activeObj) {
+                    const nodeRef = findNodeAt(wp);
+                    if (nodeRef) {
+                        draggingNode = nodeRef;
+                        const node = polygons[nodeRef.polyIndex][nodeRef.nodeIndex];
+                        dragOffset = { x: node.x - wp.x, y: node.y - wp.y };
+                        canvas.style.cursor = 'grabbing';
+                        draw();
+                        return;
+                    }
+                    const endRef = findRulerEndAt(wp);
+                    if (endRef) {
+                        draggingRulerEnd = endRef;
+                        canvas.style.cursor = 'grabbing';
+                        draw();
+                        return;
+                    }
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                const sp = getScreenPos(e);
+                const wp = screenToWorld(sp);
+                currentMousePos = wp;
+
+                if (draggingNode) {
+                    const nx = wp.x + dragOffset.x;
+                    const ny = wp.y + dragOffset.y;
+                    polygons[draggingNode.polyIndex][draggingNode.nodeIndex] = { x: nx, y: ny };
+                    draw();
+                    return;
+                }
+
+                if (draggingRulerEnd) {
+                    const r = rulers[draggingRulerEnd.rulerIndex];
+                    if (draggingRulerEnd.end === 'start') r.start = { x: wp.x, y: wp.y };
+                    else r.end = { x: wp.x, y: wp.y };
+                    draw();
+                    return;
+                }
+
+                if (mode === 'ruler' && isDrawingRuler) {
+                    draw();
+                    return;
+                }
+
+                if (mode === 'polygon') {
+                    canvas.style.cursor = 'crosshair';
+                } else if (mode === 'ruler') {
+                    if (!isDrawingRuler && findRulerEndAt(wp)) canvas.style.cursor = 'grab';
+                    else canvas.style.cursor = 'crosshair';
+                } else {
+                    if (activeObj) {
+                        if (findNodeAt(wp) || findRulerEndAt(wp)) canvas.style.cursor = 'grab';
+                        else if (findObjectAt(wp)) canvas.style.cursor = 'pointer';
+                        else canvas.style.cursor = 'default';
+                    } else {
+                        canvas.style.cursor = findObjectAt(wp) ? 'pointer' : 'default';
+                    }
+                }
+            });
+
+            canvas.addEventListener('mouseup', () => {
+                if (draggingNode) {
+                    draggingNode = null;
+                    canvas.style.cursor = mode === 'none' ? 'default' : 'crosshair';
+                    draw();
+                }
+                if (draggingRulerEnd) {
+                    draggingRulerEnd = null;
+                    canvas.style.cursor = mode === 'none' ? 'default' : 'crosshair';
+                    draw();
+                }
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                if (draggingNode) { draggingNode = null; canvas.style.cursor = 'crosshair'; draw(); }
+                if (draggingRulerEnd) { draggingRulerEnd = null; canvas.style.cursor = 'crosshair'; draw(); }
+            });
+
+            canvas.addEventListener('click', (e) => {
+                if (e.button !== 0) return;
+                const wp = getWorldPos(e);
+
+                // --- ПОЛИГОН ---
+                if (mode === 'polygon') {
+                    if (e.shiftKey) {
+                        if (currentPolygon.length > 0) {
+                            let bestIdx = -1;
+                            let bestDist = Infinity;
+                            const r = HIT_RADIUS_PX / zoomFactor;
+                            for (let i = 0; i < currentPolygon.length; i++) {
+                                const d = Math.hypot(currentPolygon[i].x - wp.x, currentPolygon[i].y - wp.y);
+                                if (d < bestDist) { bestDist = d; bestIdx = i; }
+                            }
+                            if (bestIdx >= 0 && bestDist <= r) {
+                                currentPolygon.splice(bestIdx, 1);
+                                draw();
+                            }
+                        }
+                        return;
+                    }
+                    currentPolygon.push(wp);
+                    draw();
+                    return;
+                }
+
+                // --- ЛИНЕЙКА ---
+                if (mode === 'ruler') {
+                    if (e.shiftKey) {
+                        const r = HIT_RADIUS_PX / zoomFactor;
+                        for (let ri = rulers.length - 1; ri >= 0; ri--) {
+                            const ru = rulers[ri];
+                            if (Math.hypot(ru.start.x - wp.x, ru.start.y - wp.y) <= r ||
+                                Math.hypot(ru.end.x - wp.x, ru.end.y - wp.y) <= r) {
+                                rulers.splice(ri, 1);
+                                if (activeObj && activeObj.type === 'ruler' && activeObj.index === ri) activeObj = null;
+                                draw();
+                                return;
+                            }
+                        }
+                    }
+
+                    if (isDrawingRuler) {
+                        if (rulerStart && distPx(rulerStart, wp) > 0.5) {
+                            const newIdx = rulers.length;
+                            rulers.push({ start: { ...rulerStart }, end: { ...wp } });
+                            setMode('none');
+                            activeObj = { type: 'ruler', index: newIdx };
+                            draw();
+                        } else {
+                            isDrawingRuler = false;
+                            rulerStart = null;
+                            currentMousePos = null;
+                            draw();
+                        }
+                        return;
+                    }
+
+                    rulerStart = wp;
+                    isDrawingRuler = true;
+                    currentMousePos = wp;
+                    draw();
+                    return;
+                }
+
+                // --- ВЫБОР ---
+                if (mode === 'none') {
+                    if (e.shiftKey) {
+                        if (activeObj && activeObj.type === 'polygon') {
+                            const nodeRef = findNodeAt(wp);
+                            if (nodeRef) {
+                                removeNode(nodeRef);
+                                draw();
+                                return;
+                            }
+                        }
+                        if (activeObj && activeObj.type === 'ruler') {
+                            const endRef = findRulerEndAt(wp);
+                            if (endRef) {
+                                rulers.splice(endRef.rulerIndex, 1);
+                                activeObj = null;
+                                draw();
+                                return;
+                            }
+                        }
+                        const obj = findObjectAt(wp);
+                        if (obj) {
+                            if (obj.type === 'polygon') polygons.splice(obj.index, 1);
+                            else rulers.splice(obj.index, 1);
+                            if (activeObj && activeObj.type === obj.type && activeObj.index === obj.index) {
+                                activeObj = null;
+                            }
+                            draw();
+                        }
+                        return;
+                    }
+
+                    const obj = findObjectAt(wp);
+                    if (obj) {
+                        activeObj = obj;
+                    } else {
+                        activeObj = null;
+                    }
+                    draw();
+                    return;
+                }
+            });
+
+            canvas.addEventListener('dblclick', (e) => {
+                if (mode !== 'none' || !activeObj) return;
+                const wp = getWorldPos(e);
+
+                if (activeObj.type === 'polygon') {
+                    const poly = polygons[activeObj.index];
+                    if (!poly) return;
+                    const r = HIT_RADIUS_PX / zoomFactor;
+
+                    let nodeIdx = -1;
+                    for (let i = 0; i < poly.length; i++) {
+                        if (Math.hypot(poly[i].x - wp.x, poly[i].y - wp.y) <= r) {
+                            nodeIdx = i;
+                            break;
+                        }
+                    }
+                    if (nodeIdx >= 0) {
+                        if (poly.length <= 3) {
+                            polygons.splice(activeObj.index, 1);
+                            activeObj = null;
+                        } else {
+                            poly.splice(nodeIdx, 1);
+                        }
+                        draw();
+                        return;
+                    }
+
+                    const edge = findNearestEdgePoint(wp, poly);
+                    if (edge && edge.dist <= r) {
+                        poly.splice(edge.edgeIndex + 1, 0, edge.point);
+                        draw();
+                        return;
+                    }
+                    return;
+                }
+            });
+
+            canvas.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (mode === 'polygon') {
+                    finishCurrentPolygon();
+                }
+            });
+
+            window.addEventListener('keydown', (e) => {
+                // Не реагируем, если фокус в поле ввода (на будущее)
+                if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+
+                if (e.key === 'Enter') {
+                    if (mode === 'polygon') {
+                        if (finishCurrentPolygon()) e.preventDefault();
+                    }
+                    return;
+                }
+
+                // Delete или Backspace — удалить активный объект
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (deleteActiveObject()) {
+                        e.preventDefault();
+                    }
+                    return;
+                }
+
+                if (e.key === 'Escape') {
+                    if (isDrawingRuler) {
+                        isDrawingRuler = false;
+                        rulerStart = null;
+                        currentMousePos = null;
+                        draw();
+                    }
+                    if (currentPolygon.length > 0) {
+                        currentPolygon = [];
+                        draw();
+                    }
+                    if (activeObj) {
+                        activeObj = null;
+                        draw();
+                    }
+                }
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const sp = getScreenPos(e);
+                const wb = screenToWorld(sp);
+
+                const delta = -Math.sign(e.deltaY);
+                const step = 1.15;
+                let nz = zoomFactor * (delta > 0 ? step : 1 / step);
+                nz = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nz));
+                if (nz === zoomFactor) return;
+
+                const na = {
+                    x: (sp.x - wb.x * nz) / (1 - nz),
+                    y: (sp.y - wb.y * nz) / (1 - nz)
+                };
+                zoomFactor = nz;
+                zoomAnchor = na;
+                draw();
+            }, { passive: false });
+
+            function setMode(newMode) {
+                mode = newMode;
+                modeNoneBtn.classList.toggle('active', newMode === 'none');
+                modePolygonBtn.classList.toggle('active', newMode === 'polygon');
+                modeRulerBtn.classList.toggle('active', newMode === 'ruler');
+
+                isDrawingRuler = false;
+                rulerStart = null;
+                currentMousePos = null;
+
+                if (newMode !== 'none') activeObj = null;
+
+                canvas.style.cursor = newMode === 'none' ? 'default' : 'crosshair';
+                draw();
+            }
+
+            modeNoneBtn.addEventListener('click', () => setMode('none'));
+
+            modePolygonBtn.addEventListener('click', () => {
+                if (mode === 'polygon') setMode('none');
+                else setMode('polygon');
+            });
+
+            modeRulerBtn.addEventListener('click', () => {
+                if (mode === 'ruler') setMode('none');
+                else setMode('ruler');
+            });
+
+            deleteSelectedBtn.addEventListener('click', () => {
+                deleteActiveObject();
+            });
+
+            finishPolygonBtn.addEventListener('click', () => {
+                finishCurrentPolygon();
+            });
+
+            resetZoomBtn.addEventListener('click', () => {
+                zoomFactor = 1.0;
+                zoomAnchor = { x: canvas.width / 2, y: canvas.height / 2 };
+                draw();
+            });
+
+            clearAllBtn.addEventListener('click', () => {
+                polygons = [];
+                currentPolygon = [];
+                rulers = [];
+                rulerStart = null;
+                isDrawingRuler = false;
+                currentMousePos = null;
+                draggingNode = null;
+                draggingRulerEnd = null;
+                activeObj = null;
+                draw();
+            });
+
+            canvas.style.cursor = 'default';
+            zoomAnchor = { x: canvas.width / 2, y: canvas.height / 2 };
+            draw();
+
+            canvas.addEventListener('dragstart', (e) => e.preventDefault());
+        })();
+    </script>
+</body>
+</html>
