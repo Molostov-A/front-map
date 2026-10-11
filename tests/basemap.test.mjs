@@ -46,10 +46,14 @@ console.log('raster-стили');
   }
 }
 
-console.log('источник векторной схемы');
+console.log('карта по умолчанию');
 {
-  const v = basemapById(DEFAULT_BASEMAP_ID);
-  ok(v && v.kind === 'liberty' && !v.style, 'карта по умолчанию — векторная (liberty)');
+  const d = basemapById(DEFAULT_BASEMAP_ID);
+  ok(d != null, `карта по умолчанию существует: ${DEFAULT_BASEMAP_ID}`);
+  ok(!!d.style && d.kind !== 'liberty', 'карта по умолчанию — растровая (без внешнего стиля)');
+
+  const v = basemapById('liberty');
+  ok(v && v.kind === 'liberty' && !v.style, 'векторная схема liberty остаётся доступной');
 }
 
 console.log(`\n${passed} ok, ${failed} fail`);

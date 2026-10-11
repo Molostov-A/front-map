@@ -2167,12 +2167,12 @@ function updateHandleSizes() {
   if (r === handleR) return;
   handleR = r;
   try {
-    map.setPaintProperty('fmO-handles', 'circle-radius', r);
-    map.setPaintProperty('fmO-handles', 'circle-stroke-width', Math.max(1, r * 0.3));
-    map.setPaintProperty('fmO-tangents', 'circle-radius', r);
-    map.setPaintProperty('fmO-tangents', 'circle-stroke-width', Math.max(1, r * 0.25));
-    map.setPaintProperty('fmO-draft-verts', 'circle-radius', r);
-    map.setPaintProperty('fmO-draft-verts', 'circle-stroke-width', Math.max(1, r * 0.3));
+    const ids = ['fmO-handles', 'fmO-tangents', 'fmO-draft-verts'];
+    for (const id of ids) {
+      if (!map.getLayer(id)) continue;
+      map.setPaintProperty(id, 'circle-radius', r);
+      map.setPaintProperty(id, 'circle-stroke-width', Math.max(1, r * (id === 'fmO-tangents' ? 0.25 : 0.3)));
+    }
   } catch (e) { /* слой ещё не готов */ }
 }
 
@@ -2344,7 +2344,12 @@ function initPanels() {
   map.on('move', updateAreaLabelVisibility);
   window.__map = map;
   document.title = 'boot';
-  await new Promise((res) => map.on('load', res));
+  await new Promise((res) => {
+    let done = false;
+    const finish = () => { if (!done) { done = true; clearTimeout(t); res(); } };
+    const t = setTimeout(finish, 10000);
+    map.once('load', finish);
+  });
   document.title = 'loaded';
 
   addOverlayLayers();

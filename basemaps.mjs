@@ -47,6 +47,6 @@ export const BASEMAPS = [
   { id: 'yandex-hybrid', group: 'Яндекс', label: 'Гибрид', style: rasterStyle({ tiles: yandex('sat,skl'), attribution: '© Яндекс' }) }
 ];
 
-export const DEFAULT_BASEMAP_ID = 'liberty';
+export const DEFAULT_BASEMAP_ID = 'yandex-scheme';
 
 export const basemapById = (id) => BASEMAPS.find((b) => b.id === id);
