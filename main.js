@@ -14,6 +14,7 @@ import { applyBasemap, bindBasemapSelect, currentBasemapId, loadBaseStyle } from
 import { addOverlayLayers, updateHandleSizes } from './src/map/overlays.js';
 import { drawRulers, initRulerCanvas, resizeRulerCanvas } from './src/map/ruler-canvas.js';
 import { cancelDraft, setTool } from './src/tools/draw.js';
+import './src/tools/index.js'; // регистрирует инструменты в core/tools-registry.js
 import { bindKeyboard, bindMapEvents } from './src/tools/map-events.js';
 import { ensureAuth, initLoginForm, initUsersModal, showLogin, updateUserBox } from './src/ui/auth.js';
 import { bindDatesPanel } from './src/ui/dates-panel.js';

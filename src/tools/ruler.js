@@ -8,6 +8,14 @@ import { dedupeCoords } from './draw.js';
 const cancel = () => { state.draft = null; refreshSources(); updateHint(); };
 
 export const rulerTool = {
+  selectAfterCreate: true,
+  hint(d) {
+    const n = d && d.coords ? d.coords.length : 0;
+    if (n >= 2) return 'Shift+клик — добавить точку · клик по первой точке / ПКМ / Enter / двойной клик — завершить · Esc — отмена';
+    if (n === 1) return 'Клик — вторая точка (фиксация) · Shift+клик — добавить точку (ломаная) · Esc — отмена';
+    return 'Клик — начало линейки · Shift+клик — ломаная из нескольких точек · Esc — отмена';
+  },
+  // draft не нужен: черновик линейки рисуется на оверлей-канве (map/ruler-canvas.js)
   onClick({ lngLat, point, shift }) {
     if (!state.draft || state.draft.type !== 'ruler') {
       state.draft = { type: 'ruler', coords: [lngLat], cursor: null };

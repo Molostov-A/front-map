@@ -5,6 +5,7 @@ import { refreshSources } from '../map/render.js';
 import { dedupeCoords } from './draw.js';
 
 export const polygonTool = {
+  hint: () => 'Клик — добавить точку · клик по первой точке / Enter — закрыть · Esc — отмена',
   onClick({ lngLat, point }) {
     if (!state.draft || state.draft.type !== 'polygon') {
       state.draft = { type: 'polygon', coords: [lngLat], cursor: null };
@@ -18,6 +19,16 @@ export const polygonTool = {
     }
     refreshSources();
     return false;
+  },
+  /** Черновик → полигон до курсора (замкнутый) + вершины. */
+  draft(d) {
+    if (!d.coords.length) return [];
+    const ring = d.cursor ? [...d.coords, d.cursor] : [...d.coords];
+    if (ring.length < 2) return [];
+    const a = ring[0], b = ring[ring.length - 1];
+    if (a[0] !== b[0] || a[1] !== b[1]) ring.push(a);
+    return [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] }, properties: {} },
+      ...d.coords.map((c) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} }))];
   },
   finish(d) {
     const coords = dedupeCoords(d.coords);

@@ -4,6 +4,7 @@ import { promptModal } from '../ui/modals.js';
 import { createFeature, defaultPropsFor } from './draw.js';
 
 export const labelTool = {
+  hint: () => 'Клик по карте — создать надпись',
   onClick({ lngLat }) {
     promptModal({ title: 'Текст надписи', name: '', showColor: false }).then((r) => {
       if (r && r.name.trim()) {

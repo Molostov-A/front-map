@@ -23,6 +23,8 @@ const hitFeatures = (point) => {
 };
 
 export const selectTool = {
+  hint: () => 'Клик — выбрать элемент · тяните синие точки · Del — удалить',
+
   onClick(e) {
     if (state.appendArrow) {
       const f = selectedArrow();

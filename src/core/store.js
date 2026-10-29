@@ -1,5 +1,5 @@
 // Единое состояние клиента (state), экземпляр карты (map + setMap), выбранный объект и его стиль.
-import { defaultStyle } from '../../shared/feature-schema.mjs';
+import { defaultStyle, FEATURE_TYPES } from '../../shared/feature-schema.mjs';
 
 export const state = {
   layers: [],
@@ -35,7 +35,8 @@ export function selectedArrow() {
   return f && f.type === 'arrow' ? f : null;
 }
 
-export const STYLE_KEY = { line: 'lineStyle', polygon: 'polygonStyle', point: 'pointStyle', label: 'labelStyle', arrow: 'arrowStyle', ruler: 'rulerStyle' };
+// Тип объекта → ключ его стиля в state: line → lineStyle и т.д. (типы — из общей схемы).
+export const STYLE_KEY = Object.fromEntries(FEATURE_TYPES.map((t) => [t, t + 'Style']));
 
 export function styleStateOf(type) { return state[STYLE_KEY[type]]; }
 

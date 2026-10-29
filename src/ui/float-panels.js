@@ -1,4 +1,5 @@
 // Плавающие панели: позиция/сворачивание (localStorage), видимость, меню настроек.
+import { FEATURE_TYPES } from '../../shared/feature-schema.mjs';
 import { state } from '../core/store.js';
 import { $ } from '../core/util.js';
 
@@ -53,8 +54,7 @@ export function setPanelVisible(key, on) {
 }
 
 export function propsHasContent() {
-  return ['#arrow-style', '#line-style', '#polygon-style', '#point-style', '#label-style', '#ruler-style']
-    .some((s) => { const el = $(s); return el && el.classList.contains('show'); });
+  return FEATURE_TYPES.some((t) => { const el = $('#' + t + '-style'); return el && el.classList.contains('show'); });
 }
 
 export function applyPanelVisibility() {

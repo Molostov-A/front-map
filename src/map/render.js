@@ -2,6 +2,7 @@
 import { arrowOutline, arrowPolygonLngLat } from '../../arrow.mjs';
 import { canEdit } from '../core/session.js';
 import { map, state } from '../core/store.js';
+import { TOOLS } from '../core/tools-registry.js';
 import { num } from '../core/util.js';
 import { syncAreaLabels } from './area-labels.js';
 import { syncMarkers } from './markers.js';
@@ -70,39 +71,11 @@ export function handlesFor(feat) {
   return out;
 }
 
+// Черновик рисует сам инструмент (tools/<type>.js → draft), здесь только сборка FeatureCollection.
 export function draftFC() {
-  const fc = emptyFC();
   const d = state.draft;
-  if (!d) return fc;
-  if (d.type === 'ruler') return fc; // линейка рисуется на оверлей-канве
-  if (d.type === 'arrow') {
-    const nodes = d.nodes || [];
-    if (!nodes.length) return fc;
-    const pts = d.cursor ? [...nodes, d.cursor] : [...nodes];
-    nodes.forEach((c) => fc.features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} }));
-    if (pts.length >= 2) {
-      fc.features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: pts }, properties: {} });
-      try {
-        const poly = arrowPolygonLngLat(pts, state.arrowStyle, null);
-        if (poly) fc.features.push({ type: 'Feature', geometry: poly, properties: { arrowPreview: true } });
-      } catch (e) { /* пока мало точек */ }
-    }
-    return fc;
-  }
-  if (!d.coords.length) return fc;
-  const pts = [...d.coords];
-  if (d.cursor) pts.push(d.cursor);
-  if (d.type === 'line') {
-    fc.features.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: pts }, properties: {} });
-    d.coords.forEach((c) => fc.features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} }));
-  } else if (pts.length >= 2) {
-    const ring = pts.slice();
-    const a = ring[0], b = ring[ring.length - 1];
-    if (a[0] !== b[0] || a[1] !== b[1]) ring.push(a);
-    fc.features.push({ type: 'Feature', geometry: { type: 'Polygon', coordinates: [ring] }, properties: {} });
-    d.coords.forEach((c) => fc.features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} }));
-  }
-  return fc;
+  const tool = d && TOOLS[d.type];
+  return { type: 'FeatureCollection', features: tool && tool.draft ? tool.draft(d) : [] };
 }
 
 export function refreshSources() {

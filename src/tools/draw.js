@@ -3,7 +3,7 @@
 import { api } from '../core/api.js';
 import { currentDay } from '../core/days.js';
 import { canEdit } from '../core/session.js';
-import { map, state } from '../core/store.js';
+import { map, state, styleStateOf } from '../core/store.js';
 import { toast } from '../core/util.js';
 import { select } from '../edit/selection.js';
 import { refreshSources } from '../map/render.js';
@@ -51,22 +51,18 @@ export async function createFeature({ layer_id, type, geometry, properties }) {
 export const dedupeCoords = (coords) =>
   (coords || []).filter((c, i, arr) => i === 0 || c[0] !== arr[i - 1][0] || c[1] !== arr[i - 1][1]);
 
+/** Свойства нового объекта — копия текущего стиля типа из панели. */
 export function defaultPropsFor(type) {
-  if (type === 'line') return { ...state.lineStyle };
-  if (type === 'polygon') return { ...state.polygonStyle };
-  if (type === 'point') return { ...state.pointStyle, label: { ...state.pointStyle.label } };
-  if (type === 'label') return { ...state.labelStyle, label: { ...state.labelStyle.label } };
-  if (type === 'arrow') return { ...state.arrowStyle };
-  if (type === 'ruler') return { ...state.rulerStyle };
-  return {};
+  const style = styleStateOf(type);
+  return style ? structuredClone(style) : {};
 }
 
-export function commitDraft(geometry, type) {
+export function commitDraft(geometry, type, { select: selectAfter = false } = {}) {
   state.draft = null;
   refreshSources();
   createFeature({ layer_id: state.activeLayerId, type, geometry, properties: defaultPropsFor(type) })
     .then((created) => {
-      if ((type === 'arrow' || type === 'ruler') && created) { select(created.id); updateStylePanels(); }
+      if (selectAfter && created) { select(created.id); updateStylePanels(); }
     });
 }
 
