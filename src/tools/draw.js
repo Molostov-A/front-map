@@ -1,4 +1,5 @@
-// Инструменты рисования: переключение, черновик, завершение, создание объекта (POST).
+// Общее для инструментов: переключение, проверка слоя, создание объекта (POST), черновик.
+// Логика конкретных инструментов — tools/<type>.js, реестр и finishDraft — tools/index.js.
 import { api } from '../core/api.js';
 import { currentDay } from '../core/days.js';
 import { canEdit } from '../core/session.js';
@@ -46,30 +47,9 @@ export async function createFeature({ layer_id, type, geometry, properties }) {
   } catch (e) { toast('Ошибка: ' + e.message); return null; }
 }
 
-export function finishDraft() {
-  const d = state.draft;
-  if (!d) return;
-  const coords = d.coords ? d.coords.filter((c, i, arr) => i === 0 || c[0] !== arr[i - 1][0] || c[1] !== arr[i - 1][1]) : [];
-  if (d.type === 'arrow') {
-    const nodes = (d.nodes || []).filter((c, i, arr) => i === 0 || c[0] !== arr[i - 1][0] || c[1] !== arr[i - 1][1]);
-    if (nodes.length < 2) { toast('Стрелка: нужно минимум 2 узла'); return; }
-    commitDraft({ type: 'LineString', coordinates: nodes }, 'arrow');
-    return;
-  }
-  if (d.type === 'ruler') {
-    const pts = (d.coords || []).filter((c, i, arr) => i === 0 || c[0] !== arr[i - 1][0] || c[1] !== arr[i - 1][1]);
-    if (pts.length < 2) { state.draft = null; refreshSources(); updateHint(); return; }
-    commitDraft({ type: 'LineString', coordinates: pts }, 'ruler');
-    return;
-  }
-  if (d.type === 'line') {
-    if (coords.length < 2) { toast('Линия: минимум 2 точки'); return; }
-    commitDraft({ type: 'LineString', coordinates: coords }, 'line');
-  } else {
-    if (coords.length < 3) { toast('Полигон: минимум 3 точки'); return; }
-    commitDraft({ type: 'Polygon', coordinates: [[...coords, coords[0]]] }, 'polygon');
-  }
-}
+/** Убирает подряд идущие одинаковые точки (двойной клик ставит точку дважды). */
+export const dedupeCoords = (coords) =>
+  (coords || []).filter((c, i, arr) => i === 0 || c[0] !== arr[i - 1][0] || c[1] !== arr[i - 1][1]);
 
 export function defaultPropsFor(type) {
   if (type === 'line') return { ...state.lineStyle };

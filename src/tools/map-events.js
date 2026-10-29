@@ -1,129 +1,39 @@
-// События карты (клик, двойной клик, ПКМ, курсор, перетаскивание узлов) и клавиатура.
-import { arrowNearestSegment } from '../../arrow.mjs';
-import { normalizeStyle } from '../../shared/feature-schema.mjs';
+// События карты и клавиатура: раздача кликов инструментам (tools/index.js, tools/select.js),
+// общая механика черновика (курсор, ПКМ/двойной клик/Enter — завершить), перетаскивание узлов.
 import { api } from '../core/api.js';
 import { currentDay } from '../core/days.js';
-import { canEdit } from '../core/session.js';
-import { map, selectedArrow, state } from '../core/store.js';
-import { $, toast } from '../core/util.js';
 import { hooks } from '../core/hooks.js';
+import { canEdit } from '../core/session.js';
+import { map, state } from '../core/store.js';
+import { $, toast } from '../core/util.js';
 import { applyCoord } from '../edit/geometry.js';
 import { beginMove, setMoveMode } from '../edit/move-mode.js';
 import { select } from '../edit/selection.js';
-import { cancelArrowPut, deleteSelected, putArrowGeometry } from '../edit/sync.js';
-import { metersPerPixel } from '../map/overlays.js';
+import { deleteSelected, putArrowGeometry } from '../edit/sync.js';
 import { refreshSources } from '../map/render.js';
-import { fmLIds } from '../map/style-layers.js';
-import { cancelDraft, createFeature, defaultPropsFor, ensureCanDraw, finishDraft } from './draw.js';
 import { refreshDates } from '../ui/dates-panel.js';
 import { updateHint } from '../ui/hint.js';
 import { renderLayerList } from '../ui/layer-list.js';
-import { closeDelete, closeModal, deleteOpen, modalOpen, promptModal } from '../ui/modals.js';
+import { closeDelete, closeModal, deleteOpen, modalOpen } from '../ui/modals.js';
 import { updateArrowPanel, updateMeasurePanels } from '../ui/style-panels.js';
 import { closeCalendar } from '../ui/timeline.js';
+import { cancelDraft, ensureCanDraw } from './draw.js';
+import { DRAW_TOOLS, finishDraft } from './index.js';
+import { selectTool } from './select.js';
 
 // События карты: рисование, выбор, перетаскивание узлов, курсор.
 export function bindMapEvents() {
   map.on('click', (e) => {
     if (state.ignoreNextClick) { state.ignoreNextClick = false; return; }
     if (state.moveMode) return;
-    if (state.tool === 'select') {
-      if (state.appendArrow) {
-        const f = selectedArrow();
-        if (f && ensureCanDraw()) {
-          const lngLat = [e.lngLat.lng, e.lngLat.lat];
-          f.geometry.coordinates.push(lngLat);
-          const meta = Array.isArray(f.properties.nodeMeta)
-            ? f.properties.nodeMeta
-            : f.geometry.coordinates.slice(0, -1).map(() => ({ auto: true }));
-          meta.push({ auto: true });
-          f.properties.nodeMeta = meta;
-          putArrowGeometry(f);
-          updateArrowPanel();
-        }
-        return;
-      }
-      const handles = map.queryRenderedFeatures(e.point, { layers: ['fmO-handles'] });
-      if (handles.length) return;
-      const ids = fmLIds();
-      const hits = ids.length ? map.queryRenderedFeatures(e.point, { layers: ids }) : [];
-      select(hits.length ? Number(hits[0].properties.id) : null);
-      return;
-    }
+    if (state.tool === 'select') { selectTool.onClick(e); return; }
 
     if (!ensureCanDraw()) return;
-    const lngLat = [e.lngLat.lng, e.lngLat.lat];
-    // Shift — рисование несколькими узлами; без Shift линия/стрелка завершается на втором клике
+    const tool = DRAW_TOOLS[state.tool];
+    if (!tool) return;
+    // Shift — рисование несколькими узлами; без Shift линия/стрелка/линейка завершаются на втором клике
     const shift = !!(e.originalEvent && e.originalEvent.shiftKey);
-
-    if (state.tool === 'point') {
-      createFeature({ layer_id: state.activeLayerId, type: 'point', geometry: { type: 'Point', coordinates: lngLat }, properties: defaultPropsFor('point') });
-      return;
-    }
-    if (state.tool === 'label') {
-      promptModal({ title: 'Текст надписи', name: '', showColor: false }).then((r) => {
-        if (r && r.name.trim()) {
-          createFeature({
-            layer_id: state.activeLayerId,
-            type: 'label',
-            geometry: { type: 'Point', coordinates: lngLat },
-            properties: { ...defaultPropsFor('label'), text: r.name.trim() }
-          });
-        }
-      });
-      return;
-    }
-
-    if (state.tool === 'ruler') {
-      if (!state.draft || state.draft.type !== 'ruler') {
-        state.draft = { type: 'ruler', coords: [lngLat], cursor: null };
-      } else {
-        const p0 = map.project(state.draft.coords[0]);
-        const nearFirst = Math.hypot(p0.x - e.point.x, p0.y - e.point.y) < 10;
-        // вырожденный второй клик рядом с началом — отмена
-        if (state.draft.coords.length === 1 && Math.hypot(p0.x - e.point.x, p0.y - e.point.y) < 4) {
-          state.draft = null;
-          refreshSources();
-          updateHint();
-          return;
-        }
-        // клик по первой точке ломаной — завершить
-        if (state.draft.coords.length >= 3 && nearFirst) { finishDraft(); return; }
-        state.draft.coords.push(lngLat);
-      }
-      refreshSources();
-      updateHint();
-      // без Shift — линейка из двух точек
-      if (!shift && state.draft && state.draft.coords.length >= 2) finishDraft();
-      return;
-    }
-
-    if (state.tool === 'arrow') {
-      if (!state.draft || state.draft.type !== 'arrow') {
-        state.draft = { type: 'arrow', nodes: [lngLat], cursor: null };
-      } else {
-        state.draft.nodes.push(lngLat);
-      }
-      refreshSources();
-      updateHint();
-      if (!shift && state.draft.nodes.length >= 2) finishDraft();
-      return;
-    }
-
-    // line / polygon
-    if (!state.draft || state.draft.type !== state.tool) {
-      state.draft = { type: state.tool, coords: [lngLat], cursor: null };
-    } else {
-      // замкнуть полигон по первой точке
-      if (state.tool === 'polygon' && state.draft.coords.length >= 3) {
-        const p = map.project(state.draft.coords[0]);
-        if (Math.hypot(p.x - e.point.x, p.y - e.point.y) < 10) { finishDraft(); return; }
-      }
-      state.draft.coords.push(lngLat);
-    }
-    refreshSources();
-    // без Shift линия — одна линия из двух точек
-    if (state.tool === 'line' && !shift && state.draft && state.draft.coords.length >= 2) finishDraft();
+    if (tool.onClick({ lngLat: [e.lngLat.lng, e.lngLat.lat], point: e.point, shift })) finishDraft();
   });
 
   map.on('contextmenu', (e) => {
@@ -139,46 +49,7 @@ export function bindMapEvents() {
 
   map.on('dblclick', (e) => {
     if (state.draft) { finishDraft(); return; }
-    if (state.tool !== 'select') return;
-    if (state.appendArrow) return;
-    const sel = canEdit() && selectedArrow();
-    if (sel) {
-      const tol = metersPerPixel(e.lngLat.lat) * 14;
-      const near = arrowNearestSegment(sel.geometry.coordinates, sel.properties || {},
-        sel.properties && sel.properties.nodeMeta, [e.lngLat.lng, e.lngLat.lat], tol);
-      if (near) {
-        sel.geometry.coordinates.splice(near.segIndex + 1, 0, near.point);
-        const meta = Array.isArray(sel.properties.nodeMeta)
-          ? sel.properties.nodeMeta
-          : sel.geometry.coordinates.slice(0, -1).map(() => ({ auto: true }));
-        meta.splice(near.segIndex + 1, 0, { auto: true });
-        sel.properties.nodeMeta = meta;
-        putArrowGeometry(sel);
-        updateArrowPanel();
-      }
-      return;
-    }
-    const ids = fmLIds();
-    const hits = ids.length ? map.queryRenderedFeatures(e.point, { layers: ids }) : [];
-    if (!hits.length) return;
-    const f = state.features.find((x) => x.id === Number(hits[0].properties.id));
-    if (!f || f.type !== 'label' || !canEdit()) return;
-    promptModal({ title: 'Текст надписи', name: f.properties.text || '', showColor: false }).then(async (r) => {
-      if (!r) return;
-      cancelArrowPut(f.id);
-      try {
-        const upd = await api.send('PUT', `/api/features/${f.id}`, {
-          properties: { ...f.properties, text: r.name.trim() },
-          date: currentDay()
-        });
-        const i = state.features.findIndex((x) => x.id === upd.id);
-        if (i >= 0) state.features[i] = upd;
-        if (upd.id === state.selectedId) state.labelStyle = normalizeStyle('label', upd.properties);
-        refreshSources();
-        updateArrowPanel();
-        refreshDates();
-      } catch (err) { toast('Ошибка: ' + err.message); }
-    });
+    if (state.tool === 'select') selectTool.onDblClick(e);
   });
 
   // курсор
@@ -201,15 +72,8 @@ export function bindMapEvents() {
       refreshSources();
       return;
     }
-    if (state.tool === 'select') {
-      if (state.appendArrow) { map.getCanvas().style.cursor = 'crosshair'; return; }
-      const handles = map.queryRenderedFeatures(e.point, { layers: ['fmO-handles', 'fmO-tangents'] });
-      const ids = fmLIds();
-      const hits = !handles.length && ids.length ? map.queryRenderedFeatures(e.point, { layers: ids }) : [];
-      map.getCanvas().style.cursor = (handles.length || hits.length) ? 'pointer' : '';
-    } else {
-      map.getCanvas().style.cursor = 'crosshair';
-    }
+    if (state.tool === 'select') selectTool.onHover(e);
+    else map.getCanvas().style.cursor = 'crosshair';
   });
 
   // перемещение выбранного элемента (режим «Переместить»)
