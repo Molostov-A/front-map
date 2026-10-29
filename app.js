@@ -138,6 +138,7 @@ function updateUserBox() {
   const nameEl = document.getElementById('ub-name');
   const roleEl = document.getElementById('ub-role');
   const usersBtn = document.getElementById('btn-users');
+  document.body.classList.toggle('readonly', !canEdit());
   if (nameEl) nameEl.textContent = currentUser ? currentUser.username : '—';
   if (roleEl) roleEl.textContent = currentUser ? '(' + currentUser.role + ')' : '';
   if (usersBtn) usersBtn.style.display = currentUser && currentUser.role === 'admin' ? '' : 'none';
@@ -358,6 +359,14 @@ const state = {
   dates: null,          // даты выбранного элемента { created_at, deleted_at, changes:[...] }
   calView: null         // отображаемый месяц календаря: Date (1-е число)
 };
+
+// День, к которому относятся запросы. Клиент всегда передаёт его серверу явно:
+// сервер считает «сегодня» по UTC, а пользователь — по местному времени.
+const currentDay = () => state.date || todayDay();
+
+// viewer только смотрит: инструменты рисования и любые записи на сервер недоступны.
+const canEdit = () => !!currentUser && currentUser.role !== 'viewer';
+const viewerVisibility = new Map(); // layerId -> visible: локальные переключения видимости у viewer
 
 let map = null;
 let LABEL_FONT = ['Noto Sans Regular'];
@@ -760,7 +769,7 @@ function refreshSources() {
   const showGeomSel = sel && sel.geometry && sel.type !== 'label';
   map.getSource('fmO-sel').setData(showGeomSel
     ? { type: 'FeatureCollection', features: [toGeoJSON(sel)] } : emptyFC());
-  map.getSource('fmO-handles').setData(sel && sel.type !== 'label'
+  map.getSource('fmO-handles').setData(sel && sel.type !== 'label' && canEdit()
     ? { type: 'FeatureCollection', features: handlesFor(sel).map((h) => ({
         type: 'Feature', geometry: { type: 'Point', coordinates: h.c },
         properties: { index: h.i, ring: h.ring }
@@ -770,7 +779,7 @@ function refreshSources() {
   // скелет и ручки сглаживания выбранной стрелки/линии
   let skel = emptyFC();
   let tangents = emptyFC();
-  const isSmoothSkeleton = sel && sel.geometry && sel.geometry.type === 'LineString'
+  const isSmoothSkeleton = canEdit() && sel && sel.geometry && sel.geometry.type === 'LineString'
     && (sel.type === 'arrow' || sel.type === 'line');
   if (isSmoothSkeleton) {
     const p = sel.properties || {};
@@ -1294,16 +1303,19 @@ function applyAreaLabelStyle(el, props) {
 
 /* ================= data loading ================= */
 async function reload() {
-  const q = state.date ? `?date=${encodeURIComponent(state.date)}` : '';
+  const q = `?date=${encodeURIComponent(currentDay())}`;
   const data = await api.get('/api/map' + q);
   state.layers = data.layers;
   state.features = data.features;
 
-  if (!state.layers.length) {
+  if (!state.layers.length && canEdit()) {
     await api.send('POST', '/api/layers', { name: 'Слой 1', color: '#e63946' });
     const again = await api.get('/api/map' + q);
     state.layers = again.layers;
     state.features = again.features;
+  }
+  if (!canEdit()) {
+    for (const L of state.layers) if (viewerVisibility.has(L.id)) L.visible = viewerVisibility.get(L.id);
   }
   if (!state.layers.some((l) => l.id === state.activeLayerId)) {
     state.activeLayerId = state.layers[0] ? state.layers[0].id : null;
@@ -1321,7 +1333,7 @@ async function reload() {
 /* ================= timeline ================= */
 function renderTimeline() {
   const el = $('#tl-date');
-  if (el) el.textContent = fmtDay(state.date || todayDay());
+  if (el) el.textContent = fmtDay(currentDay());
   const now = $('#tl-now');
   if (now) now.classList.toggle('hist', state.date !== null);
 }
@@ -1337,7 +1349,7 @@ async function setDay(day) {
 
 /* сдвиг на соседний день */
 function stepDay(n) {
-  setDay(shiftDay(state.date || todayDay(), n));
+  setDay(shiftDay(currentDay(), n));
 }
 
 /* ================= calendar ================= */
@@ -1427,6 +1439,7 @@ function updateDatesPanel() {
     inp.type = 'date';
     inp.value = c.valid_from;
     inp.addEventListener('change', async () => {
+      if (!canEdit()) return;
       try {
         await api.send('PATCH', `/api/features/${f.id}/versions/${c.id}`, { valid_from: inp.value });
         await reload();
@@ -1448,7 +1461,12 @@ let deleteResolve = null;
 function askDelete() {
   return new Promise((resolve) => {
     deleteResolve = resolve;
-    $('#delete-date').textContent = fmtDay(state.date || todayDay());
+    $('#delete-date').textContent = fmtDay(currentDay());
+    // «С даты» возможно только после дня создания, иначе объект пропал бы во всех днях.
+    const f = state.features.find((x) => x.id === state.selectedId);
+    const fromBtn = $('#delete-from');
+    fromBtn.disabled = !!f && currentDay() <= f.created_at;
+    fromBtn.title = fromBtn.disabled ? 'Объект создан в этот день — удалите во всех периодах' : '';
     $('#delete-back').style.display = 'flex';
   });
 }
@@ -1518,11 +1536,24 @@ function renderLayerList() {
       return b;
     };
 
+    const visBtn = mk(L.visible ? '👁' : '🚫', 'Показать/скрыть', async () => {
+      if (!canEdit()) { // viewer: видимость только локально, на сервер не пишем
+        viewerVisibility.set(L.id, !L.visible);
+        L.visible = !L.visible;
+        refreshSources();
+        renderLayerList();
+        return;
+      }
+      try { await api.send('PATCH', `/api/layers/${L.id}`, { visible: !L.visible }); await reload(); }
+      catch (e) { toast('Ошибка: ' + e.message); }
+    });
+    if (!canEdit()) {
+      item.append(main, visBtn);
+      box.appendChild(item);
+      continue;
+    }
     item.append(main,
-      mk(L.visible ? '👁' : '🚫', 'Показать/скрыть', async () => {
-        try { await api.send('PATCH', `/api/layers/${L.id}`, { visible: !L.visible }); await reload(); }
-        catch (e) { toast('Ошибка: ' + e.message); }
-      }),
+      visBtn,
       mk('↑', 'Выше', () => moveLayer(L, -1)),
       mk('✎', 'Переименовать / цвет', async () => {
         const r = await promptModal({ title: 'Слой', name: L.name, color: L.color });
@@ -1570,6 +1601,7 @@ async function addLayer() {
 
 /* ================= drawing ================= */
 function setTool(t) {
+  if (!canEdit()) t = 'select';
   state.tool = t;
   if (t !== 'select') state.appendArrow = false;
   document.querySelectorAll('#toolbar [data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === t));
@@ -1630,8 +1662,8 @@ function ensureCanDraw() {
 
 async function createFeature({ layer_id, type, geometry, properties }) {
   try {
-    const body = { layer_id, type, geometry, properties };
-    if (state.date) body.date = state.date;
+    if (!canEdit()) return null;
+    const body = { layer_id, type, geometry, properties, date: currentDay() };
     const created = await api.send('POST', '/api/features', body);
     state.features.push(created);
     refreshSources();
@@ -1847,6 +1879,7 @@ function translateGeom(geom, orig, dx, dy) {
 }
 
 function beginMove(start) {
+  if (!canEdit()) return;
   const f = state.features.find((x) => x.id === state.selectedId);
   if (!f || !f.geometry) return;
   state.move = {
@@ -1888,7 +1921,7 @@ function onDocUp() {
 }
 
 function setMoveMode(on) {
-  state.moveMode = !!on;
+  state.moveMode = !!on && canEdit();
   if (map) {
     try {
       if (state.moveMode) { map.dragPan.disable(); map.boxZoom.disable(); }
@@ -2071,33 +2104,42 @@ function syncArrowStyle() {
   updateArrowPanel();
 }
 
-let arrowPutTimer = null;
-let pendingArrow = null;
+// Дебаунс PUT свойств — отдельно для каждого объекта: правка другого объекта
+// не должна отменять ещё не отправленную правку предыдущего.
+const pendingPuts = new Map(); // id -> { timer, props, date }
 function scheduleArrowPut(f) {
-  pendingArrow = { id: f.id, props: { ...f.properties }, date: state.date || null };
-  clearTimeout(arrowPutTimer);
-  arrowPutTimer = setTimeout(async () => {
-    const p = pendingArrow; pendingArrow = null;
-    try {
-      const body = { properties: p.props };
-      if (p.date) body.date = p.date;
-      const upd = await api.send('PUT', `/api/features/${p.id}`, body);
-      const i = state.features.findIndex((x) => x.id === upd.id);
-      if (i >= 0) state.features[i] = upd;
-      refreshSources();
-      refreshDates();
-    } catch (e) { toast('Ошибка: ' + e.message); }
-  }, 300);
+  if (!canEdit()) return;
+  const prev = pendingPuts.get(f.id);
+  if (prev) clearTimeout(prev.timer);
+  const entry = { props: { ...f.properties }, date: currentDay() };
+  entry.timer = setTimeout(() => sendPendingPut(f.id), 300);
+  pendingPuts.set(f.id, entry);
 }
-function cancelArrowPut() {
-  if (pendingArrow) { clearTimeout(arrowPutTimer); pendingArrow = null; }
+async function sendPendingPut(id) {
+  const p = pendingPuts.get(id);
+  if (!p) return;
+  pendingPuts.delete(id);
+  try {
+    const upd = await api.send('PUT', `/api/features/${id}`, { properties: p.props, date: p.date });
+    // Пока запрос летел, пользователь мог продолжить правку — тогда ответ уже устарел.
+    if (pendingPuts.has(id)) return;
+    const i = state.features.findIndex((x) => x.id === upd.id);
+    if (i >= 0) state.features[i] = upd;
+    refreshSources();
+    if (id === state.selectedId) refreshDates();
+  } catch (e) { toast('Ошибка: ' + e.message); }
+}
+function cancelArrowPut(id) {
+  const p = pendingPuts.get(id);
+  if (p) { clearTimeout(p.timer); pendingPuts.delete(id); }
 }
 
 async function deleteSelected() {
+  if (!canEdit()) return;
   if (!state.selectedId) { toast('Ничего не выбрано'); return; }
   const id = state.selectedId;
-  const day = state.date || todayDay();
-  cancelArrowPut();
+  const day = currentDay();
+  cancelArrowPut(id);
   const mode = await askDelete();
   if (!mode) return;
   try {
@@ -2146,8 +2188,9 @@ function applyCoord(feat, g, c) {
 }
 
 function putArrowGeometry(f) {
-  const body = { geometry: f.geometry, properties: { ...f.properties } };
-  if (state.date) body.date = state.date;
+  if (!canEdit()) return;
+  cancelArrowPut(f.id); // свойства уходят в этом же запросе
+  const body = { geometry: f.geometry, properties: { ...f.properties }, date: currentDay() };
   api.send('PUT', `/api/features/${f.id}`, body)
     .then((upd) => {
       const i = state.features.findIndex((x) => x.id === upd.id);
@@ -2351,7 +2394,14 @@ function initPanels() {
     attributionControl: { compact: true }
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-  map.on('error', (e) => diag('map: ' + (e.error && e.error.message || e.type)));
+  map.on('error', (e) => {
+    const err = e.error;
+    const msg = 'map: ' + (err && err.message || e.type);
+    // Ошибки загрузки ресурсов/тайлов (AJAXError с url/status) не фатальны — пишем только в
+    // консоль, чтобы не затирать <title> (его использует e2e для проверки инициализации).
+    if (err && (err.url || typeof err.status === 'number')) console.error('[front-map] ' + msg);
+    else diag(msg);
+  });
   map.on('zoom', updateHandleSizes);
   map.on('move', updateHandleSizes);
   map.on('zoom', updateAreaLabelVisibility);
@@ -2561,7 +2611,7 @@ function initPanels() {
   });
   const appBtn = $('#arrow-append');
   if (appBtn) appBtn.addEventListener('click', () => {
-    if (!selectedArrow()) return;
+    if (!selectedArrow() || !canEdit()) return;
     state.appendArrow = !state.appendArrow;
     updateHint();
     updateArrowPanel();
@@ -2603,17 +2653,17 @@ function initPanels() {
 
   /* dates panel */
   $('#dates-created').addEventListener('change', async () => {
-    const id = state.selectedId; if (!id) return;
+    const id = state.selectedId; if (!id || !canEdit()) return;
     try { await api.send('PATCH', `/api/features/${id}`, { created_at: $('#dates-created').value }); await reload(); await refreshDates(); }
     catch (e) { toast('Ошибка: ' + e.message); refreshDates(); }
   });
   $('#dates-deleted').addEventListener('change', async () => {
-    const id = state.selectedId; if (!id) return;
+    const id = state.selectedId; if (!id || !canEdit()) return;
     try { await api.send('PATCH', `/api/features/${id}`, { deleted_at: $('#dates-deleted').value || null }); await reload(); await refreshDates(); }
     catch (e) { toast('Ошибка: ' + e.message); refreshDates(); }
   });
   $('#dates-deleted-clear').onclick = async () => {
-    const id = state.selectedId; if (!id) return;
+    const id = state.selectedId; if (!id || !canEdit()) return;
     try { await api.send('PATCH', `/api/features/${id}`, { deleted_at: null }); await reload(); await refreshDates(); }
     catch (e) { toast('Ошибка: ' + e.message); }
   };
@@ -2742,7 +2792,7 @@ function initPanels() {
     if (state.draft) { finishDraft(); return; }
     if (state.tool !== 'select') return;
     if (state.appendArrow) return;
-    const sel = selectedArrow();
+    const sel = canEdit() && selectedArrow();
     if (sel) {
       const tol = metersPerPixel(e.lngLat.lat) * 14;
       const near = arrowNearestSegment(sel.geometry.coordinates, sel.properties || {},
@@ -2763,14 +2813,21 @@ function initPanels() {
     const hits = ids.length ? map.queryRenderedFeatures(e.point, { layers: ids }) : [];
     if (!hits.length) return;
     const f = state.features.find((x) => x.id === Number(hits[0].properties.id));
-    if (!f || f.type !== 'label') return;
+    if (!f || f.type !== 'label' || !canEdit()) return;
     promptModal({ title: 'Текст надписи', name: f.properties.text || '', showColor: false }).then(async (r) => {
       if (!r) return;
+      cancelArrowPut(f.id);
       try {
-        const upd = await api.send('PUT', `/api/features/${f.id}`, { properties: { text: r.name.trim() } });
+        const upd = await api.send('PUT', `/api/features/${f.id}`, {
+          properties: { ...f.properties, text: r.name.trim() },
+          date: currentDay()
+        });
         const i = state.features.findIndex((x) => x.id === upd.id);
-        state.features[i] = upd;
+        if (i >= 0) state.features[i] = upd;
+        if (upd.id === state.selectedId) state.labelStyle = normalizeLabelStyle(upd.properties);
         refreshSources();
+        updateArrowPanel();
+        refreshDates();
       } catch (err) { toast('Ошибка: ' + err.message); }
     });
   });
@@ -2816,7 +2873,7 @@ function initPanels() {
 
   // перетаскивание вершин
   map.on('mousedown', 'fmO-handles', (e) => {
-    if (state.moveMode) return;
+    if (state.moveMode || !canEdit()) return;
     if (state.tool !== 'select' || !state.selectedId) return;
     e.preventDefault();
     const hit = map.queryRenderedFeatures(e.point, { layers: ['fmO-handles'] })[0];
@@ -2836,7 +2893,7 @@ function initPanels() {
     map.getCanvas().style.cursor = 'grabbing';
   });
   map.on('mousedown', 'fmO-tangents', (e) => {
-    if (state.moveMode) return;
+    if (state.moveMode || !canEdit()) return;
     if (state.tool !== 'select' || !state.selectedId) return;
     e.preventDefault();
     const hit = map.queryRenderedFeatures(e.point, { layers: ['fmO-tangents'] })[0];
@@ -2853,9 +2910,8 @@ function initPanels() {
     if (!moved) return;
     const feat = state.features.find((f) => f.id === featureId);
     if (!feat) return;
-    const body = { geometry: feat.geometry };
+    const body = { geometry: feat.geometry, date: currentDay() };
     if (g.type === 'tangent') body.properties = { ...feat.properties };
-    if (state.date) body.date = state.date;
     api.send('PUT', `/api/features/${featureId}`, body)
       .then((upd) => {
         const i = state.features.findIndex((f) => f.id === upd.id);

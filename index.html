@@ -217,6 +217,7 @@
   }
   .modal button.primary { background: #2d5bd1; border-color: #3d6be0; color: #fff; }
   .modal button:hover { filter: brightness(1.15); }
+  .modal button:disabled { opacity: .45; cursor: not-allowed; filter: none; }
 
   #toast {
     position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%);
@@ -274,6 +275,14 @@
   }
   #users-add button { grid-column: span 2; padding: 8px; border: none; border-radius: 7px; background: #3b6cff; color: #fff; font-weight: 600; cursor: pointer; }
   #users-error { color: #ff6b6b; font-size: 12px; min-height: 14px; }
+
+  /* Режим только чтения (роль viewer): прячем инструменты правки, стиль/даты только показываем. */
+  body.readonly #toolbar [data-tool]:not([data-tool="select"]),
+  body.readonly #btn-delete, body.readonly #btn-clear, body.readonly #add-layer { display: none; }
+  body.readonly .panel-style .as-row:not([id$="-length-row"]):not([id$="-area-row"]),
+  body.readonly .panel-style .as-checks, body.readonly .panel-style .as-btns,
+  body.readonly .panel-style .as-seg, body.readonly #pnl-dates input,
+  body.readonly #pnl-dates button { pointer-events: none; opacity: .6; }
 </style>
 </head>
 <body>
@@ -804,7 +813,7 @@
 
 <div id="toast"></div>
 
-<script src="./config.js?v=4"></script>
-<script src="./app.js?v=4" type="module"></script>
+<script src="./config.js?v=7"></script>
+<script src="./app.js?v=7" type="module"></script>
 </body>
 </html>
