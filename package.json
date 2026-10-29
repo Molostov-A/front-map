@@ -4,6 +4,6 @@
   "private": true,
   "description": "front-map client (MapLibre GL, vanilla JS). Deployed statically (GitHub Pages).",
   "scripts": {
-    "test": "node tests/arrow.test.mjs && node tests/basemap.test.mjs && node tests/measure.test.mjs"
+    "test": "node tests/arrow.test.mjs && node tests/basemap.test.mjs && node tests/measure.test.mjs && node tests/feature-schema.test.mjs"
   }
 }
