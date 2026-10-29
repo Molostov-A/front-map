@@ -1,0 +1,71 @@
+/* Карта и оверлей-канва линейки, тулбар, подсказка, таймлайн, календарь, панель дат. */
+#map { flex: 1; position: relative; }
+
+#ruler-layer {
+  position: absolute; inset: 0; z-index: 1;
+  pointer-events: none; width: 100%; height: 100%;
+}
+
+#toolbar {
+  position: absolute; top: 12px; left: 12px; z-index: 4;
+  display: flex; gap: 6px; background: #1b1e24ee; padding: 6px; border: 1px solid #2a2f38; border-radius: 8px;
+  box-shadow: 0 4px 16px #0008;
+}
+#toolbar button {
+  background: #262b34; border: 1px solid #363d49; color: #cfd6e0; border-radius: 6px;
+  padding: 6px 10px; cursor: pointer; font-size: 12px; white-space: nowrap;
+}
+#toolbar button:hover { background: #323946; }
+#toolbar button.on { background: #2d5bd1; border-color: #3d6be0; color: #fff; }
+#toolbar .sep { width: 1px; background: #363d49; margin: 2px 3px; }
+#toolbar select {
+  background: #262b34; border: 1px solid #363d49; color: #cfd6e0; border-radius: 6px;
+  padding: 5px 6px; cursor: pointer; font-size: 12px; max-width: 190px;
+}
+#toolbar select:hover { background: #323946; }
+
+#hint {
+  position: absolute; bottom: 12px; left: 12px; z-index: 4; display: none;
+  background: #1b1e24ee; border: 1px solid #2a2f38; padding: 7px 11px; border-radius: 6px;
+  font-size: 12px; color: #9fb4ff; box-shadow: 0 4px 16px #0008;
+}
+
+#timeline {
+  position: absolute; top: 12px; right: 52px; z-index: 4;
+  background: #1b1e24ee; border: 1px solid #2a2f38; border-radius: 8px; padding: 6px;
+  display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 16px #0008;
+}
+#tl-date { font-size: 13px; font-variant-numeric: tabular-nums; min-width: 84px; text-align: center; cursor: pointer; }
+#tl-now { width: auto; padding: 0 8px; white-space: nowrap; }
+#tl-now.hist { background: #5a4413; border-color: #7a5d1a; color: #ffd479; }
+#tl-cal { white-space: nowrap; }
+
+#calendar {
+  position: absolute; top: 52px; right: 52px; z-index: 12; width: 264px;
+  background: #1b1e24; border: 1px solid #2a2f38; border-radius: 10px; padding: 10px;
+  box-shadow: 0 10px 40px #000c;
+}
+#calendar.hidden { display: none; }
+#cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+#cal-head .cal-title { font-size: 13px; text-transform: capitalize; }
+#cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+#cal-grid .cal-dow { text-align: center; font-size: 11px; color: #8a93a2; padding: 4px 0; }
+#cal-grid button {
+  aspect-ratio: 1; border: 1px solid transparent; background: #262b34; color: #cfd6e0;
+  border-radius: 5px; cursor: pointer; font-size: 12px; padding: 0;
+}
+#cal-grid button:hover { background: #323946; }
+#cal-grid button.other { opacity: .4; }
+#cal-grid button.today { border-color: #3d6be0; }
+#cal-grid button.sel { background: #2d5bd1; border-color: #3d6be0; color: #fff; }
+
+.panel-style input[type=date] {
+  padding: 3px 6px; background: #14161a; border: 1px solid #363d49; color: #e6e6e6;
+  border-radius: 4px; font-size: 12px; flex: 1; min-width: 0;
+}
+#dates-changes .dates-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.del-hint { font-size: 13px; color: #cfd6e0; margin: 0 0 8px; line-height: 1.45; }
+.del-date { font-size: 12px; color: #8a93a2; }
+
+.maplibregl-ctrl-group button { background-color: #1b1e24; }
+.maplibregl-ctrl-attrib { font-size: 10px; }

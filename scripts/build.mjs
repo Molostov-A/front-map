@@ -1,4 +1,4 @@
-// Сборка для GitHub Pages: dist/ = index.html + бандл модулей с хешем в имени + config с хешем + vendor/.
+// Сборка для GitHub Pages: dist/ = index.html + бандл модулей, config и styles/*.css с хешем в имени + vendor/.
 // Запуск: npm run build (нужен devDependency esbuild). В разработке сборка не нужна — работают нативные модули.
 //
 // - точка входа — <script type="module" src="./X.js"> из index.html;
@@ -53,6 +53,17 @@ fs.writeFileSync(path.join(DIST, configName), config);
 html = html
   .replace(MODULE_RE, `<script src="./${bundleName}" type="module"></script>`)
   .replace(CONFIG_RE, `<script src="./${configName}"></script>`);
+
+// Стили приложения: каждый styles/X.css → dist/styles/X.<hash>.css (порядок <link> сохраняется).
+fs.mkdirSync(path.join(DIST, 'styles'), { recursive: true });
+const cssNames = [];
+html = html.replace(/<link href="\.\/styles\/([\w-]+)\.css" rel="stylesheet">/g, (m, name) => {
+  const css = fs.readFileSync(rel('styles', name + '.css'));
+  const out = `${name}.${shortHash(css)}.css`;
+  fs.writeFileSync(path.join(DIST, 'styles', out), css);
+  cssNames.push(out);
+  return `<link href="./styles/${out}" rel="stylesheet">`;
+});
 fs.writeFileSync(path.join(DIST, 'index.html'), html);
 
 for (const dir of ['vendor', 'examples']) {
@@ -61,4 +72,4 @@ for (const dir of ['vendor', 'examples']) {
 fs.writeFileSync(path.join(DIST, '.nojekyll'), '');
 
 const kb = (f) => Math.round(fs.statSync(path.join(DIST, f)).size / 1024);
-console.log(`dist/: ${bundleName} (${kb(bundleName)} KB, entry ${entry}), ${configName}, index.html, vendor/, examples/`);
+console.log(`dist/: ${bundleName} (${kb(bundleName)} KB, entry ${entry}), ${configName}, styles/ (${cssNames.length}), index.html, vendor/, examples/`);
