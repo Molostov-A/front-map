@@ -28,7 +28,7 @@ console.log('площадь полигона');
   const outer = [[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]];
   const inner = [[0.25, 0.25], [0.75, 0.25], [0.75, 0.75], [0.25, 0.75], [0.25, 0.25]];
   const hole = polygonAreaKm2({ type: 'Polygon', coordinates: [sq.coordinates[0], inner] });
-  ok(area - area * 0.25 < area && area > 0, 'дырка уменьшает площадь');
+  ok(hole < area && hole > area * 0.7, 'дырка уменьшает площадь');
   ok(Math.abs(area - 12363.7) > 0, 'outer не изменился');
   void outer;
   ok(polygonAreaKm2(null) === 0, 'пустая геометрия → 0');

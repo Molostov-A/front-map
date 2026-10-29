@@ -6,12 +6,7 @@ import { defaultStyle, normalizeStyle, normalizeTextStyle } from './shared/featu
 
 /* ================= helpers ================= */
 const $ = (s) => document.querySelector(s);
-const fmtDate = (iso) => new Date(iso).toLocaleString('ru-RU', {
-  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-});
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const num = (v, d) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
-const bool = (v, d) => typeof v === 'boolean' ? v : d;
 
 /* даты (гранулярность — день, формат YYYY-MM-DD) */
 const todayDay = () => {
@@ -245,7 +240,6 @@ const canEdit = () => !!currentUser && currentUser.role !== 'viewer';
 const viewerVisibility = new Map(); // layerId -> visible: локальные переключения видимости у viewer
 
 let map = null;
-let LABEL_FONT = ['Noto Sans Regular'];
 
 // диагностика: ошибки видны в <title> (для headless-проверок) и в консоли
 function diag(msg) {
@@ -283,10 +277,6 @@ async function loadBaseStyle() {
     if (!r.ok) throw new Error('style');
     const s = await r.json();
     s.glyphs = s.glyphs || 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.utf8';
-    const sym = s.layers.find((l) => l.type === 'symbol'
-      && Array.isArray(l.layout && l.layout['text-font'])
-      && typeof l.layout['text-font'][0] === 'string');
-    if (sym) LABEL_FONT = sym.layout['text-font'];
     return s;
   } catch (e) {
     return {
@@ -429,11 +419,9 @@ function rebuildStyle() {
     const arrowColor = ['coalesce', ['get', 'color'], color];
     const arrowOpacity = ['coalesce', ['get', 'opacity'], 0.6];
     const arrowGlowColor = ['coalesce', ['get', 'glowColor'], arrowColor];
-    const arrowGlowBlur = ['coalesce', ['get', 'glowBlur'], 12];
     const arrowStrokeColor = ['coalesce', ['get', 'strokeColor'], '#ffffff'];
     const arrowStrokeWidth = ['coalesce', ['get', 'strokeWidth'], 2];
     const arrowStrokeOpacity = ['coalesce', ['get', 'strokeOpacity'], 1];
-    const arrowStrokeDashed = ['coalesce', ['get', 'strokeDashed'], false];
 
     map.addLayer({ id: `fmL-fill-${L.id}`, type: 'fill', ...common,
       filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['!=', ['get', 'hatch'], true]],
@@ -1084,8 +1072,6 @@ function drawRulerOverlay(ctx, startLL, endLL, props, opts) {
   const majorTick = Math.max(4, Math.min(baseTick, majorPxS / 3));
   const mediumTick = Math.max(3.5, majorTick * 0.7);
   const smallTick = Math.max(3, majorTick * 0.55);
-
-  const labelColor = p.labelColor || color;
 
   if (p.showTicks) {
     const drawSmall = smallPxS >= 2;

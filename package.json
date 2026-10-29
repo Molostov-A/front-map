@@ -5,9 +5,12 @@
   "description": "front-map client (MapLibre GL, vanilla JS). Deployed statically (GitHub Pages).",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node tests/arrow.test.mjs && node tests/basemap.test.mjs && node tests/measure.test.mjs && node tests/feature-schema.test.mjs"
+    "test": "node tests/arrow.test.mjs && node tests/basemap.test.mjs && node tests/measure.test.mjs && node tests/feature-schema.test.mjs",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "esbuild": "0.24.2"
+    "esbuild": "0.24.2",
+    "eslint": "9.17.0",
+    "globals": "15.14.0"
   }
 }
