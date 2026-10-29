@@ -140,7 +140,7 @@ export function bindMapEvents() {
 // Клавиатура: Esc / Enter / Delete.
 export function bindKeyboard() {
   document.addEventListener('keydown', (e) => {
-    const tag = (e.target.tagName || '').toLowerCase();
+    const tag = (/** @type {HTMLElement} */ (e.target).tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea') return;
     if (modalOpen()) {
       if (e.key === 'Escape') closeModal(null);

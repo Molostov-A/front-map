@@ -7,6 +7,7 @@ import { dedupeCoords } from './draw.js';
 
 const cancel = () => { state.draft = null; refreshSources(); updateHint(); };
 
+/** @type {import('../types').Tool} */
 export const rulerTool = {
   selectAfterCreate: true,
   hint(d) {

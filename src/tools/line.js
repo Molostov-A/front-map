@@ -4,6 +4,7 @@ import { toast } from '../core/util.js';
 import { refreshSources } from '../map/render.js';
 import { dedupeCoords } from './draw.js';
 
+/** @type {import('../types').Tool} */
 export const lineTool = {
   hint: () => 'Клик — линия · Shift+клик — добавить точку · Enter / двойной клик — завершить · Esc — отмена',
   /** @returns {boolean} true — завершить черновик */

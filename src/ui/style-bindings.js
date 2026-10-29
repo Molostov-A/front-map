@@ -3,7 +3,7 @@
 import { FEATURE_TYPES } from '../../shared/feature-schema.mjs';
 import { canEdit } from '../core/session.js';
 import { activeSelected, selectedArrow, state, styleStateOf } from '../core/store.js';
-import { $ } from '../core/util.js';
+import { $, $$ } from '../core/util.js';
 import { setMoveMode } from '../edit/move-mode.js';
 import { syncStyle } from '../edit/selection.js';
 import { putArrowGeometry, scheduleArrowPut } from '../edit/sync.js';
@@ -69,7 +69,7 @@ export function bindStylePanels() {
   ['#arrow-width', '#arrow-head-width', '#arrow-head-length', '#arrow-ear-spread', '#arrow-ear-forward']
     .forEach(bindRelativeNumber);
 
-  document.querySelectorAll('[data-move]').forEach((btn) => {
+  $$('[data-move]').forEach((btn) => {
     btn.addEventListener('click', () => {
       if (state.moveMode) { setMoveMode(false); return; }
       if (!activeSelected(btn.dataset.move)) return;

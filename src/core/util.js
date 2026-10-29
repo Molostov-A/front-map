@@ -1,6 +1,10 @@
 // Мелкие DOM-хелперы, тост, диагностика ошибок в <title> (используется e2e).
 
+/** Первый элемент по селектору (без типизации DOM — any). @param {string} s @returns {any} */
 export const $ = (s) => document.querySelector(s);
+
+/** Все элементы по селектору — массивом. @param {string} s @returns {any[]} */
+export const $$ = (s) => [...document.querySelectorAll(s)];
 
 export const num = (v, d) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
 

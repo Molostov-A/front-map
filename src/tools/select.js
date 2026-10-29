@@ -22,6 +22,7 @@ const hitFeatures = (point) => {
   return ids.length ? map.queryRenderedFeatures(point, { layers: ids }) : [];
 };
 
+/** @type {import('../types').Tool} */
 export const selectTool = {
   hint: () => 'Клик — выбрать элемент · тяните синие точки · Del — удалить',
 

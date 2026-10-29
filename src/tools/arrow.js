@@ -6,6 +6,7 @@ import { refreshSources } from '../map/render.js';
 import { updateHint } from '../ui/hint.js';
 import { dedupeCoords } from './draw.js';
 
+/** @type {import('../types').Tool} */
 export const arrowTool = {
   selectAfterCreate: true,
   hint: (d) => (d && d.nodes && d.nodes.length
@@ -16,6 +17,7 @@ export const arrowTool = {
     const nodes = d.nodes || [];
     if (!nodes.length) return [];
     const pts = d.cursor ? [...nodes, d.cursor] : [...nodes];
+    /** @type {any[]} */
     const out = nodes.map((c) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: c }, properties: {} }));
     if (pts.length >= 2) {
       out.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: pts }, properties: {} });

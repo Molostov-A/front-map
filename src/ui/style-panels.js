@@ -3,7 +3,7 @@
 import { formatArea, formatLength, lineLengthKm, polygonAreaKm2 } from '../../measure.mjs';
 import { FEATURE_TYPES } from '../../shared/feature-schema.mjs';
 import { activeSelected, selectedArrow, state, styleStateOf } from '../core/store.js';
-import { $ } from '../core/util.js';
+import { $, $$ } from '../core/util.js';
 import { applyPanelVisibility, panels } from './float-panels.js';
 import { renderPanel } from './panel-binder.js';
 
@@ -40,7 +40,7 @@ function renderArrowExtras() {
 }
 
 export function renderMoveButtons() {
-  document.querySelectorAll('[data-move]').forEach((b) => {
+  $$('[data-move]').forEach((b) => {
     const active = !!activeSelected(b.dataset.move) && state.tool === 'select';
     b.disabled = !active;
     b.classList.toggle('on', active && state.moveMode);

@@ -3,9 +3,11 @@
 // Так нет циклических импортов. Новый хук — поле здесь + присваивание в main.js.
 export const hooks = {
   /** select(id) — выбрать объект (edit/selection), вызывается из DOM-маркеров. */
-  select: () => {},
+  /** @type {(id: number | null) => void} */
+  select: (id) => {},
   /** beginMove(lngLat) — начать перемещение (edit/move-mode), из DOM-маркеров. */
-  beginMove: () => {},
+  /** @type {(lngLat: number[]) => void} */
+  beginMove: (lngLat) => {},
   /** reload() — перезагрузить карту на текущий день (data.js), из UI и sync. */
   reload: async () => {},
   /** unauthorized() — показать форму входа (ui/auth), из api при 401. */

@@ -35,7 +35,7 @@ export const api = {
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
       if (r.status === 401) { setToken(null); hooks.unauthorized(); }
-      const err = new Error(j.error || r.status);
+      const err = /** @type {Error & { status?: number }} */ (new Error(j.error || r.status));
       err.status = r.status;
       throw err;
     }

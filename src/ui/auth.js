@@ -1,36 +1,37 @@
 // Вход, блок пользователя (выход, роль), модалка управления пользователями (admin).
 import { api, getToken, setToken } from '../core/api.js';
 import { canEdit, currentUser, setCurrentUser } from '../core/session.js';
+import { $ } from '../core/util.js';
 
 export let loginResolve = null;
 
 export function showLogin() {
-  const back = document.getElementById('login-back');
+  const back = $('#login-back');
   if (back) back.classList.add('show');
 }
 
 export function hideLogin() {
-  const back = document.getElementById('login-back');
+  const back = $('#login-back');
   if (back) back.classList.remove('show');
 }
 
 export function initLoginForm() {
-  const form = document.getElementById('login-card');
+  const form = $('#login-card');
   if (!form) return;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const errEl = document.getElementById('login-error');
-    const btn = document.getElementById('login-submit');
+    const errEl = $('#login-error');
+    const btn = $('#login-submit');
     if (errEl) errEl.textContent = '';
     if (btn) btn.disabled = true;
     try {
       const r = await api.send('POST', '/api/auth/login', {
-        username: document.getElementById('login-user').value,
-        password: document.getElementById('login-pass').value
+        username: $('#login-user').value,
+        password: $('#login-pass').value
       });
       setToken(r.token);
       setCurrentUser(r.user);
-      document.getElementById('login-pass').value = '';
+      $('#login-pass').value = '';
       hideLogin();
       if (loginResolve) { const f = loginResolve; loginResolve = null; f(r.user); }
     } catch (err) {
@@ -56,19 +57,19 @@ export async function ensureAuth() {
 }
 
 export function setUsersError(msg) {
-  const el = document.getElementById('users-error');
+  const el = $('#users-error');
   if (el) el.textContent = msg || '';
 }
 
 export function updateUserBox() {
-  const nameEl = document.getElementById('ub-name');
-  const roleEl = document.getElementById('ub-role');
-  const usersBtn = document.getElementById('btn-users');
+  const nameEl = $('#ub-name');
+  const roleEl = $('#ub-role');
+  const usersBtn = $('#btn-users');
   document.body.classList.toggle('readonly', !canEdit());
   if (nameEl) nameEl.textContent = currentUser ? currentUser.username : '—';
   if (roleEl) roleEl.textContent = currentUser ? '(' + currentUser.role + ')' : '';
   if (usersBtn) usersBtn.style.display = currentUser && currentUser.role === 'admin' ? '' : 'none';
-  const logout = document.getElementById('btn-logout');
+  const logout = $('#btn-logout');
   if (logout && !logout.__wired) {
     logout.__wired = true;
     logout.addEventListener('click', async () => {
@@ -80,14 +81,14 @@ export function updateUserBox() {
   if (usersBtn && !usersBtn.__wired) {
     usersBtn.__wired = true;
     usersBtn.addEventListener('click', () => {
-      document.getElementById('users-back').classList.add('show');
+      $('#users-back').classList.add('show');
       renderUsers();
     });
   }
 }
 
 export async function renderUsers() {
-  const list = document.getElementById('users-list');
+  const list = $('#users-list');
   if (!list) return;
   list.innerHTML = '';
   let users = [];
@@ -112,22 +113,22 @@ export async function renderUsers() {
 }
 
 export function initUsersModal() {
-  const close = document.getElementById('users-close');
-  if (close) close.addEventListener('click', () => document.getElementById('users-back').classList.remove('show'));
-  const back = document.getElementById('users-back');
-  if (back) back.addEventListener('click', (e) => { if (e.target.id === 'users-back') back.classList.remove('show'); });
-  const form = document.getElementById('users-add');
+  const close = $('#users-close');
+  if (close) close.addEventListener('click', () => $('#users-back').classList.remove('show'));
+  const back = $('#users-back');
+  if (back) back.addEventListener('click', (e) => { if (/** @type {HTMLElement} */ (e.target).id === 'users-back') back.classList.remove('show'); });
+  const form = $('#users-add');
   if (form) form.addEventListener('submit', async (e) => {
     e.preventDefault();
     setUsersError('');
     try {
       await api.send('POST', '/api/users', {
-        username: document.getElementById('users-new-name').value,
-        password: document.getElementById('users-new-pass').value,
-        role: document.getElementById('users-new-role').value
+        username: $('#users-new-name').value,
+        password: $('#users-new-pass').value,
+        role: $('#users-new-role').value
       });
-      document.getElementById('users-new-name').value = '';
-      document.getElementById('users-new-pass').value = '';
+      $('#users-new-name').value = '';
+      $('#users-new-pass').value = '';
       await renderUsers();
     } catch (err) { setUsersError(err.message); }
   });

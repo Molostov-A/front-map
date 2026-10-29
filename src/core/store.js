@@ -1,6 +1,7 @@
 // Единое состояние клиента (state), экземпляр карты (map + setMap), выбранный объект и его стиль.
 import { defaultStyle, FEATURE_TYPES } from '../../shared/feature-schema.mjs';
 
+/** @type {import('../types').AppState} */
 export const state = {
   layers: [],
   features: [],
@@ -26,6 +27,7 @@ export const state = {
   calView: null         // отображаемый месяц календаря: Date (1-е число)
 };
 
+/** Экземпляр maplibregl.Map (типов MapLibre нет — any). @type {any} */
 export let map = null;
 
 export function setMap(m) { map = m; }

@@ -4,7 +4,7 @@ import { api } from '../core/api.js';
 import { currentDay } from '../core/days.js';
 import { canEdit } from '../core/session.js';
 import { map, state, styleStateOf } from '../core/store.js';
-import { toast } from '../core/util.js';
+import { $$, toast } from '../core/util.js';
 import { select } from '../edit/selection.js';
 import { refreshSources } from '../map/render.js';
 import { updateHint } from '../ui/hint.js';
@@ -15,7 +15,7 @@ export function setTool(t) {
   if (!canEdit()) t = 'select';
   state.tool = t;
   if (t !== 'select') state.appendArrow = false;
-  document.querySelectorAll('#toolbar [data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === t));
+  $$('#toolbar [data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === t));
   if (map) {
     map.doubleClickZoom.disable(); // мешает завершению фигуры
     // при рисовании Shift+клик добавляет узлы, поэтому box zoom отключаем

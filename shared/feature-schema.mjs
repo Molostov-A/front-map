@@ -6,7 +6,11 @@
 // Новое поле стиля = одна строка в SCHEMA (+ контрол в панели на клиенте).
 // Чистый модуль: без DOM и Node API.
 
-/** Цвет/строка: непустая строка, иначе значение по умолчанию (или значение другого поля). */
+/**
+ * Цвет/строка: непустая строка, иначе значение по умолчанию (или значение другого поля).
+ * @param {string | null} def
+ * @param {{ fallbackField?: string }} [opts]
+ */
 const str = (def, { fallbackField } = {}) => (v, out) =>
   (typeof v === 'string' && v ? v : (fallbackField ? out[fallbackField] : def));
 

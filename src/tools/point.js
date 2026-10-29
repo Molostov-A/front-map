@@ -2,6 +2,7 @@
 import { state } from '../core/store.js';
 import { createFeature, defaultPropsFor } from './draw.js';
 
+/** @type {import('../types').Tool} */
 export const pointTool = {
   hint: () => 'Клик по карте — поставить точку',
   onClick({ lngLat }) {

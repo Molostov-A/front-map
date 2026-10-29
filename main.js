@@ -4,7 +4,7 @@ import * as maplibregl from './vendor/maplibre-gl.mjs';
 import { basemapById } from './basemaps.mjs';
 import { hooks } from './src/core/hooks.js';
 import { map, setMap } from './src/core/store.js';
-import { $, diag } from './src/core/util.js';
+import { $, $$, diag } from './src/core/util.js';
 import { reload } from './src/data.js';
 import { beginMove } from './src/edit/move-mode.js';
 import { select, syncStyle } from './src/edit/selection.js';
@@ -30,7 +30,7 @@ window.addEventListener('unhandledrejection', (e) => diag('promise: ' + (e.reaso
 
 // Тулбар: инструменты, удаление, сброс, новый слой.
 function bindToolbar() {
-  document.querySelectorAll('#toolbar [data-tool]').forEach((b) => {
+  $$('#toolbar [data-tool]').forEach((b) => {
     b.onclick = () => setTool(b.dataset.tool);
   });
   $('#btn-delete').onclick = deleteSelected;

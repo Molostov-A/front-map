@@ -100,7 +100,7 @@ export function bindTimeline() {
   $('#calendar').addEventListener('click', (e) => e.stopPropagation());
   document.addEventListener('click', (e) => {
     const cal = $('#calendar');
-    if (!cal.classList.contains('hidden') && !cal.contains(e.target) && e.target.id !== 'tl-cal' && e.target.id !== 'tl-date') {
+    if (!cal.classList.contains('hidden') && !cal.contains(e.target) && /** @type {HTMLElement} */ (e.target).id !== 'tl-cal' && /** @type {HTMLElement} */ (e.target).id !== 'tl-date') {
       closeCalendar();
     }
   });

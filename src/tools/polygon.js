@@ -4,6 +4,7 @@ import { toast } from '../core/util.js';
 import { refreshSources } from '../map/render.js';
 import { dedupeCoords } from './draw.js';
 
+/** @type {import('../types').Tool} */
 export const polygonTool = {
   hint: () => 'Клик — добавить точку · клик по первой точке / Enter — закрыть · Esc — отмена',
   onClick({ lngLat, point }) {

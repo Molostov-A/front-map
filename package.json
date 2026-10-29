@@ -7,11 +7,13 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node tests/arrow.test.mjs && node tests/basemap.test.mjs && node tests/measure.test.mjs && node tests/feature-schema.test.mjs && node tests/panel-binder.test.mjs",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc -p ."
   },
   "devDependencies": {
     "esbuild": "0.24.2",
     "eslint": "9.17.0",
-    "globals": "15.14.0"
+    "globals": "15.14.0",
+    "typescript": "5.7.2"
   }
 }

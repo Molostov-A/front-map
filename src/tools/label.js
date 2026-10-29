@@ -3,6 +3,7 @@ import { state } from '../core/store.js';
 import { promptModal } from '../ui/modals.js';
 import { createFeature, defaultPropsFor } from './draw.js';
 
+/** @type {import('../types').Tool} */
 export const labelTool = {
   hint: () => 'Клик по карте — создать надпись',
   onClick({ lngLat }) {
