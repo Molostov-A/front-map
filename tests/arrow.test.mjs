@@ -1,10 +1,8 @@
-﻿import { project, unproject, arrowPolygonLngLat, arrowOutline, arrowNearestSegment } from '../arrow.mjs';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { project, unproject, arrowPolygonLngLat, arrowOutline, arrowNearestSegment } from '../arrow.mjs';
 
-let passed = 0, failed = 0;
-const ok = (cond, name) => {
-  if (cond) { passed++; console.log('  ok  ' + name); }
-  else { failed++; console.log('  FAIL ' + name); }
-};
+const ok = (cond, name) => assert.ok(cond, name);
 
 // метры -> lng/lat
 const M = (x, y) => unproject([x, y]);
@@ -29,16 +27,16 @@ const style = {
   stemMode: 'sharp', smoothAmount: 0.6
 };
 
-console.log('project/unproject');
-{
+test('project/unproject', () => {
   const c = [34.5, 48.7];
   const back = unproject(project(c));
   ok(Math.abs(back[0] - c[0]) < 1e-9 && Math.abs(back[1] - c[1]) < 1e-9, 'roundtrip lng/lat');
-}
+});
 
-console.log('полигон стрелки');
+// базовый полигон — общий для нескольких тестов ниже
 const poly = arrowPolygonLngLat(coords, style, null);
-{
+
+test('полигон стрелки', () => {
   ok(poly && poly.type === 'Polygon', 'возвращается Polygon');
   const ring = poly.coordinates[0].map((c) => project(c));
   ok(ring.length >= 8, `кольцо из ${ring.length} вершин`);
@@ -57,10 +55,9 @@ const poly = arrowPolygonLngLat(coords, style, null);
   ok(!pointInRing(project(M(130, 0)), ring), 'у основания нет ширины 260 м');
   ok(!pointInRing(project(M(90, 1000)), ring), 'в середине ствол уже 180 м');
   ok(pointInRing(project(M(60, 1000)), ring), 'у середины ствола ширина >= 120 м');
-}
+});
 
-console.log('ушки');
-{
+test('ушки', () => {
   const noEars = arrowPolygonLngLat(coords, { ...style, earsEnabled: false }, null);
   const r1 = poly.coordinates[0].length;
   const r2 = noEars.coordinates[0].length;
@@ -68,27 +65,24 @@ console.log('ушки');
   const ring = poly.coordinates[0].map((c) => project(c));
   ok(pointInRing(project(M(-250, 2000)), ring), 'левое ухо внутри при разлёте 300');
   ok(!pointInRing(project(M(-350, 2000)), ring), 'за ухом (400 м) снаружи');
-}
+});
 
-console.log('форма наконечника');
-{
+test('форма наконечника', () => {
   const shaped = arrowPolygonLngLat(coords, { ...style, headShape: 0.8 }, null);
   const hasExtra = shaped.coordinates[0].length > poly.coordinates[0].length;
   ok(hasExtra, 'shape>0 добавляет плечи (больше вершин)');
-}
+});
 
-console.log('сглаживание');
-{
+test('сглаживание', () => {
   const smooth = arrowPolygonLngLat(coords, { ...style, stemMode: 'smooth' }, null);
   ok(smooth && smooth.coordinates[0].length > poly.coordinates[0].length, 'сглаженный ствол содержит больше вершин');
 
   const out = arrowOutline(coords, { ...style, stemMode: 'smooth' }, null);
   ok(out.smooth === true && out.handles.length === 3, 'outline: 3 узла и ручки');
   ok(out.skeleton.length > 3, `скелет из ${out.skeleton.length} точек`);
-}
+});
 
-console.log('ручки (meta)');
-{
+test('ручки (meta)', () => {
   const meta = [{ auto: true }, { auto: false, i: [0, -200], o: [0, 200] }, { auto: true }];
   const out = arrowOutline(coords, { ...style, stemMode: 'smooth' }, meta);
   ok(out.handles[1].auto === false, 'ручной узел сохраняет auto=false');
@@ -96,24 +90,19 @@ console.log('ручки (meta)');
   ok(Math.abs(hp[0] - 0) < 1 && Math.abs(hp[1] - 1200) < 1, `hOut смещён на +200 м (y=${hp[1].toFixed(1)})`);
   const hi = project(out.handles[1].in);
   ok(Math.abs(hi[1] - 800) < 1, `hIn смещён на -200 м (y=${hi[1].toFixed(1)})`);
-}
+});
 
-console.log('ближайший сегмент');
-{
+test('ближайший сегмент', () => {
   const seg = arrowNearestSegment(coords, style, null, M(0, 500), 50);
   ok(seg && seg.segIndex === 0, 'середина первого сегмента → segIndex 0');
   const seg2 = arrowNearestSegment(coords, style, null, M(0, 1500), 50);
   ok(seg2 && seg2.segIndex === 1, 'середина второго сегмента → segIndex 1');
   const far = arrowNearestSegment(coords, style, null, M(5000, 5000), 50);
   ok(far === null, 'далёкая точка → null');
-}
+});
 
-console.log('ошибки входа');
-{
+test('ошибки входа', () => {
   ok(arrowPolygonLngLat([M(0, 0)], style, null) === null, 'одна точка → null');
   ok(arrowPolygonLngLat([], style, null) === null, 'пустой массив → null');
   ok(arrowPolygonLngLat(coords, { ...style, baseWidth: 0 }, null) === null, 'нулевая ширина → null');
-}
-
-console.log(`\n${passed} ok, ${failed} fail`);
-process.exit(failed === 0 ? 0 : 1);
+});

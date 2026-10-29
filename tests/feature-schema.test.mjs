@@ -1,13 +1,11 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   SCHEMA, FEATURE_TYPES, FONTS, normalize, normalizeStyle, defaultStyle, normalizeTextStyle
 } from '../shared/feature-schema.mjs';
 
-let passed = 0, failed = 0;
-const ok = (cond, name) => {
-  if (cond) { passed++; console.log('  ok  ' + name); }
-  else { failed++; console.log('  FAIL ' + name); }
-};
+const ok = (cond, name) => assert.ok(cond, name);
 const same = (a, b) => JSON.stringify(sortKeys(a)) === JSON.stringify(sortKeys(b));
 function sortKeys(v) {
   if (Array.isArray(v)) return v.map(sortKeys);
@@ -16,8 +14,7 @@ function sortKeys(v) {
 }
 const roundtrip = (v) => JSON.parse(JSON.stringify(v));
 
-console.log('golden: схема = прежний серверный normalizeProps');
-{
+test('golden: схема = прежний серверный normalizeProps', () => {
   const { cases } = JSON.parse(fs.readFileSync(new URL('./fixtures/props-golden.json', import.meta.url), 'utf8'));
   let mismatches = 0, fontFixes = 0;
   for (const c of cases) {
@@ -36,10 +33,9 @@ console.log('golden: схема = прежний серверный normalizePro
   }
   ok(cases.length > 300, `набор не пуст (${cases.length})`);
   ok(mismatches === 0, `совпадают все случаи (расхождений: ${mismatches}; поправок шрифта: ${fontFixes})`);
-}
+});
 
-console.log('значения по умолчанию = прежние клиентские *_STYLE_DEFAULTS');
-{
+test('значения по умолчанию = прежние клиентские *_STYLE_DEFAULTS', () => {
   const OLD = {
     arrow: { color: '#7f8cff', opacity: 0.95, baseWidth: 600, headBaseWidth: 300, headLength: 900, headShape: 0,
       earsEnabled: true, earSpread: 1400, earForward: 0, stemMode: 'sharp', smoothAmount: 0.6,
@@ -56,10 +52,9 @@ console.log('значения по умолчанию = прежние клие�
   ok(same(defaultStyle('point'), { color: '#e63946', size: 7, caption: '', captionMode: 'selected', label: TEXT }), 'defaults point');
   ok(same(defaultStyle('label'), { text: '', label: TEXT }), 'defaults label');
   ok(same(normalizeTextStyle(undefined), TEXT), 'normalizeTextStyle(undefined)');
-}
+});
 
-console.log('стиль vs все свойства');
-{
+test('стиль vs все свойства', () => {
   const meta = [{ auto: false, i: [1, 2], o: [3, 4] }];
   ok(!('nodeMeta' in normalizeStyle('arrow', { nodeMeta: meta })), 'normalizeStyle не содержит nodeMeta (иначе {...props, ...style} затрёт ручки)');
   ok(same(normalize('line', { nodeMeta: meta }).nodeMeta, meta), 'normalize сохраняет nodeMeta');
@@ -71,7 +66,4 @@ console.log('стиль vs все свойства');
   ok(same(FEATURE_TYPES, Object.keys(SCHEMA)) && FEATURE_TYPES.length === 6, 'FEATURE_TYPES из схемы');
   const raw = { a: 1 };
   ok(normalize('unknown', raw) === raw && same(normalizeStyle('unknown', raw), {}), 'неизвестный тип');
-}
-
-console.log(`\n${passed} ok, ${failed} failed`);
-process.exit(failed ? 1 : 0);
+});

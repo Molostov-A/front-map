@@ -6,7 +6,7 @@
   "description": "front-map client (MapLibre GL, vanilla JS). Deployed statically (GitHub Pages).",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node tests/arrow.test.mjs && node tests/basemap.test.mjs && node tests/measure.test.mjs && node tests/feature-schema.test.mjs && node tests/panel-binder.test.mjs",
+    "test": "node --test",
     "lint": "eslint .",
     "typecheck": "tsc -p ."
   },

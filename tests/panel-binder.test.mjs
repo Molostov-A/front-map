@@ -1,11 +1,9 @@
 // Декларативный биндер панелей на минимальной подделке DOM (без браузера).
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
 import { renderPanel, bindPanel } from '../src/ui/panel-binder.js';
 
-let passed = 0, failed = 0;
-const ok = (cond, name) => {
-  if (cond) { passed++; console.log('  ok  ' + name); }
-  else { failed++; console.log('  FAIL ' + name); }
-};
+const ok = (cond, name) => assert.ok(cond, name);
 
 function el(attrs = {}, { type = 'text', classes = [], children = [] } = {}) {
   const cls = new Set(classes);
@@ -33,8 +31,7 @@ function root(nodes) {
   };
 }
 
-console.log('renderPanel');
-{
+test('renderPanel', () => {
   const opacity = el({ field: 'opacity', scale: '100' }, { type: 'range' });
   const opacityOut = el({ out: 'opacity', format: 'percent' });
   const width = el({ field: 'baseWidth' }, { type: 'number' });
@@ -57,10 +54,9 @@ console.log('renderPanel');
   ok(bgColor.disabled === true && bgColor.value === '#123456', 'label.bg=false → цвет фона disabled');
   ok(lineSmooth.children[1].classList.contains('active'), 'bool-сегмент: true → "1"');
   ok(notSmooth.disabled === true, 'отрицание "!smooth"');
-}
+});
 
-console.log('bindPanel');
-{
+test('bindPanel', () => {
   const style = { opacity: 1, label: { bold: false }, smooth: false, fill: 'solid', caption: '' };
   let changes = 0;
   const opacity = el({ field: 'opacity', scale: '100' }, { type: 'range' });
@@ -80,7 +76,4 @@ console.log('bindPanel');
   smoothSeg.children[1].fire('click');
   ok(style.smooth === true, 'bool-сегмент → boolean');
   ok(changes === 5, 'onChange после каждого изменения');
-}
-
-console.log(`\n${passed} ok, ${failed} failed`);
-process.exit(failed ? 1 : 0);
+});
