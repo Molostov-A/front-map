@@ -2,6 +2,7 @@ import * as maplibregl from './vendor/maplibre-gl.mjs';
 import { project, arrowPolygonLngLat, arrowOutline, arrowNearestSegment } from './arrow.mjs';
 import { BASEMAPS, DEFAULT_BASEMAP_ID, basemapById } from './basemaps.mjs';
 import { lineLengthKm, polygonAreaKm2, formatLength, formatArea, polygonLabelPoint, ringCentroid, pickRulerMajorUnit, formatUnit } from './measure.mjs';
+import { defaultStyle, normalizeStyle, normalizeTextStyle } from './shared/feature-schema.mjs';
 
 /* ================= helpers ================= */
 const $ = (s) => document.querySelector(s);
@@ -208,132 +209,7 @@ function initUsersModal() {
 }
 
 /* ================= state ================= */
-const ARROW_STYLE_DEFAULTS = {
-  color: '#7f8cff', opacity: 0.95, baseWidth: 600,
-  headBaseWidth: 300, headLength: 900, headShape: 0,
-  earsEnabled: true, earSpread: 1400, earForward: 0,
-  stemMode: 'sharp', smoothAmount: 0.6,
-  glowEnabled: false, glowBlur: 12, glowColor: '#7f8cff',
-  strokeEnabled: true, strokeWidth: 2, strokeColor: '#ffffff',
-  strokeOpacity: 1, strokeDashed: false
-};
-
-function normalizeArrowStyle(src) {
-  const s = src || {}, d = ARROW_STYLE_DEFAULTS;
-  const color = (v, dv) => typeof v === 'string' && v ? v : dv;
-  return {
-    color: color(s.color, d.color),
-    opacity: num(s.opacity, d.opacity),
-    baseWidth: num(s.baseWidth, d.baseWidth),
-    headBaseWidth: num(s.headBaseWidth, d.headBaseWidth),
-    headLength: num(s.headLength, d.headLength),
-    headShape: num(s.headShape, d.headShape),
-    earsEnabled: bool(s.earsEnabled, d.earsEnabled),
-    earSpread: num(s.earSpread, d.earSpread),
-    earForward: num(s.earForward, d.earForward),
-    stemMode: s.stemMode === 'smooth' ? 'smooth' : 'sharp',
-    smoothAmount: num(s.smoothAmount, d.smoothAmount),
-    glowEnabled: bool(s.glowEnabled, d.glowEnabled),
-    glowBlur: num(s.glowBlur, d.glowBlur),
-    glowColor: color(s.glowColor, d.glowColor),
-    strokeEnabled: bool(s.strokeEnabled, d.strokeEnabled),
-    strokeWidth: num(s.strokeWidth, d.strokeWidth),
-    strokeColor: color(s.strokeColor, d.strokeColor),
-    strokeOpacity: num(s.strokeOpacity, d.strokeOpacity),
-    strokeDashed: bool(s.strokeDashed, d.strokeDashed)
-  };
-}
-
-const DASH_KEYS = ['solid', 'dotted', 'dashed', 'dashdot'];
-const FONT_KEYS = ['system', 'sans', 'serif', 'mono', 'cursive'];
-const colorOr = (v, dv) => typeof v === 'string' && v ? v : dv;
-
-const LINE_STYLE_DEFAULTS = { color: '#e63946', opacity: 1, width: 3, dash: 'solid', smooth: false, smoothAmount: 0.6 };
-function normalizeLineStyle(src) {
-  const s = src || {}, d = LINE_STYLE_DEFAULTS;
-  return {
-    color: colorOr(s.color, d.color),
-    opacity: num(s.opacity, d.opacity),
-    width: num(s.width, d.width),
-    dash: DASH_KEYS.includes(s.dash) ? s.dash : d.dash,
-    smooth: bool(s.smooth, d.smooth),
-    smoothAmount: num(s.smoothAmount, d.smoothAmount)
-  };
-}
-
-const POLYGON_STYLE_DEFAULTS = { color: '#e63946', opacity: 0.25, fill: 'solid', outlineColor: '#e63946', outlineWidth: 2, outlineDash: 'solid', areaColor: '#eaf0ff', areaFontSize: 12, areaBg: true };
-function normalizePolygonStyle(src) {
-  const s = src || {}, d = POLYGON_STYLE_DEFAULTS;
-  return {
-    color: colorOr(s.color, d.color),
-    opacity: num(s.opacity, d.opacity),
-    fill: s.fill === 'hatched' ? 'hatched' : 'solid',
-    outlineColor: colorOr(s.outlineColor, d.outlineColor),
-    outlineWidth: num(s.outlineWidth, d.outlineWidth),
-    outlineDash: DASH_KEYS.includes(s.outlineDash) ? s.outlineDash : d.outlineDash,
-    areaColor: colorOr(s.areaColor, d.areaColor),
-    areaFontSize: num(s.areaFontSize, d.areaFontSize),
-    areaBg: bool(s.areaBg, d.areaBg)
-  };
-}
-
-const RULER_STYLE_DEFAULTS = { color: '#e0b050', width: 3, opacity: 1, fontSize: 12, labelColor: '#eaf0ff', showTicks: true, showLabels: true };
-function normalizeRulerStyle(src) {
-  const s = src || {}, d = RULER_STYLE_DEFAULTS;
-  const color = colorOr(s.color, d.color);
-  return {
-    color,
-    width: num(s.width, d.width),
-    opacity: num(s.opacity, d.opacity),
-    fontSize: num(s.fontSize, d.fontSize),
-    labelColor: colorOr(s.labelColor, d.labelColor),
-    showTicks: bool(s.showTicks, d.showTicks),
-    showLabels: bool(s.showLabels, d.showLabels)
-  };
-}
-
-const TEXT_STYLE_DEFAULTS = {
-  color: '#ffffff', size: 13, font: 'system', haloColor: '#0b0d10', haloWidth: 2,
-  opacity: 1, bg: false, bgColor: '#1b1e24', italic: false, bold: false, underline: false, strike: false
-};
-function normalizeTextStyle(src) {
-  const s = src || {}, d = TEXT_STYLE_DEFAULTS;
-  return {
-    color: colorOr(s.color, d.color),
-    size: num(s.size, d.size),
-    font: FONT_KEYS.includes(s.font) ? s.font : d.font,
-    haloColor: colorOr(s.haloColor, d.haloColor),
-    haloWidth: num(s.haloWidth, d.haloWidth),
-    opacity: num(s.opacity, d.opacity),
-    bg: bool(s.bg, d.bg),
-    bgColor: colorOr(s.bgColor, d.bgColor),
-    italic: bool(s.italic, d.italic),
-    bold: bool(s.bold, d.bold),
-    underline: bool(s.underline, d.underline),
-    strike: bool(s.strike, d.strike)
-  };
-}
-
-const POINT_STYLE_DEFAULTS = { color: '#e63946', size: 7, caption: '', captionMode: 'selected' };
-function normalizePointStyle(src) {
-  const s = src || {}, d = POINT_STYLE_DEFAULTS;
-  return {
-    color: colorOr(s.color, d.color),
-    size: num(s.size, d.size),
-    caption: typeof s.caption === 'string' ? s.caption : d.caption,
-    captionMode: ['never', 'selected', 'always'].includes(s.captionMode) ? s.captionMode : d.captionMode,
-    label: normalizeTextStyle(s.label)
-  };
-}
-
-const LABEL_STYLE_DEFAULTS = { text: '' };
-function normalizeLabelStyle(src) {
-  const s = src || {};
-  return {
-    text: typeof s.text === 'string' ? s.text : LABEL_STYLE_DEFAULTS.text,
-    label: normalizeTextStyle(s.label)
-  };
-}
+// Стили объектов: значения по умолчанию и нормализация — в shared/feature-schema.mjs.
 
 const state = {
   layers: [],
@@ -344,12 +220,12 @@ const state = {
   draft: null,          // {type:'line'|'polygon', coords, cursor} | {type:'arrow', nodes:[...], cursor}
   drag: null,           // {featureId, index, ring, moved} | {featureId, type:'tangent', index, which}
   appendArrow: false,   // режим «дорисовать» для выбранной стрелки
-  arrowStyle: normalizeArrowStyle(ARROW_STYLE_DEFAULTS),
-  lineStyle: normalizeLineStyle(LINE_STYLE_DEFAULTS),
-  polygonStyle: normalizePolygonStyle(POLYGON_STYLE_DEFAULTS),
-  pointStyle: normalizePointStyle(POINT_STYLE_DEFAULTS),
-  labelStyle: normalizeLabelStyle(LABEL_STYLE_DEFAULTS),
-  rulerStyle: normalizeRulerStyle(RULER_STYLE_DEFAULTS),
+  arrowStyle: defaultStyle('arrow'),
+  lineStyle: defaultStyle('line'),
+  polygonStyle: defaultStyle('polygon'),
+  pointStyle: defaultStyle('point'),
+  labelStyle: defaultStyle('label'),
+  rulerStyle: defaultStyle('ruler'),
   markers: new Map(),   // id -> { marker, el } для надписей и подписей точек
   areaMarkers: new Map(), // id -> marker для подписей площади полигонов
   moveMode: false,      // режим перемещения выбранного элемента
@@ -1040,7 +916,7 @@ function drawRulers() {
 function drawRulerPath(ctx, ptsLL, props, opts) {
   const o = opts || {};
   if (!ptsLL || ptsLL.length < 2) return;
-  const p = normalizeRulerStyle(props);
+  const p = normalizeStyle('ruler', props);
   const multi = ptsLL.length >= 3;
   if (multi) drawRulerPolygon(ctx, ptsLL, p);
 
@@ -1157,7 +1033,7 @@ function drawRotatedText(ctx, text, x, y, angle, color, fontSize, weight) {
 
 // Механика отрисовки линейки портирована из examples/polygon-and-ruler-example.html.
 function drawRulerOverlay(ctx, startLL, endLL, props, opts) {
-  const p = normalizeRulerStyle(props);
+  const p = normalizeStyle('ruler', props);
   const o = opts || {};
   const sS = map.project(startLL);
   const eS = map.project(endLL);
@@ -1280,7 +1156,7 @@ function drawRulerOverlay(ctx, startLL, endLL, props, opts) {
 }
 
 function applyAreaLabelStyle(el, props) {
-  const s = normalizePolygonStyle(props);
+  const s = normalizeStyle('polygon', props);
   el.style.color = s.areaColor;
   el.style.fontSize = s.areaFontSize + 'px';
   if (s.areaBg) {
@@ -1729,14 +1605,7 @@ function select(id) {
   state.appendArrow = false;
   const f = state.features.find((x) => x.id === id);
   // стиль панели всегда отражает выбранный элемент (иначе правка одного поля затирала бы остальные)
-  if (f) {
-    if (f.type === 'arrow') state.arrowStyle = normalizeArrowStyle(f.properties);
-    else if (f.type === 'line') state.lineStyle = normalizeLineStyle(f.properties);
-    else if (f.type === 'polygon') state.polygonStyle = normalizePolygonStyle(f.properties);
-    else if (f.type === 'point') state.pointStyle = normalizePointStyle(f.properties);
-    else if (f.type === 'label') state.labelStyle = normalizeLabelStyle(f.properties);
-    else if (f.type === 'ruler') state.rulerStyle = normalizeRulerStyle(f.properties);
-  }
+  if (f && STYLE_KEY[f.type]) state[STYLE_KEY[f.type]] = normalizeStyle(f.type, f.properties);
   refreshSources();
   updateArrowPanel();
   refreshDates();
@@ -1826,13 +1695,7 @@ function activeSelected(type) {
 }
 
 function syncStyle(type) {
-  const s = styleStateOf(type);
-  let normalized = s;
-  if (type === 'line') normalized = state.lineStyle = normalizeLineStyle(s);
-  else if (type === 'polygon') normalized = state.polygonStyle = normalizePolygonStyle(s);
-  else if (type === 'point') normalized = state.pointStyle = normalizePointStyle(s);
-  else if (type === 'label') normalized = state.labelStyle = normalizeLabelStyle(s);
-  else if (type === 'ruler') normalized = state.rulerStyle = normalizeRulerStyle(s);
+  const normalized = state[STYLE_KEY[type]] = normalizeStyle(type, styleStateOf(type));
   const sel = activeSelected(type);
   if (sel) {
     sel.properties = { ...sel.properties, ...normalized };
@@ -2089,7 +1952,7 @@ function renderTextStyleControls(prefix, ls) {
 
 function syncArrowStyle() {
   const sel = selectedArrow();
-  state.arrowStyle = normalizeArrowStyle(state.arrowStyle);
+  state.arrowStyle = normalizeStyle('arrow', state.arrowStyle);
   if (map) {
     try {
       map.setPaintProperty('fmO-arrow-preview', 'fill-color', state.arrowStyle.color);
@@ -2824,7 +2687,7 @@ function initPanels() {
         });
         const i = state.features.findIndex((x) => x.id === upd.id);
         if (i >= 0) state.features[i] = upd;
-        if (upd.id === state.selectedId) state.labelStyle = normalizeLabelStyle(upd.properties);
+        if (upd.id === state.selectedId) state.labelStyle = normalizeStyle('label', upd.properties);
         refreshSources();
         updateArrowPanel();
         refreshDates();
