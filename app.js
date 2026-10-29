@@ -985,7 +985,7 @@ function updateAreaLabelVisibility() {
 /* ================= линейка (оверлей-канва) =================
    Тело линейки рисует MapLibre (слой fmL-ruler-*), а деления, подписи делений
    и итоговую длину — эта канва поверх карты. Механика делений/подписей и подбор
-   шага делений портированы из polygon-and-ruler-example.html. */
+   шага делений портированы из examples/polygon-and-ruler-example.html. */
 let rulerCanvas = null;
 let rulerCtx = null;
 let rulerDpr = 1;
@@ -1155,7 +1155,7 @@ function drawRotatedText(ctx, text, x, y, angle, color, fontSize, weight) {
   ctx.restore();
 }
 
-// Механика отрисовки линейки портирована из polygon-and-ruler-example.html.
+// Механика отрисовки линейки портирована из examples/polygon-and-ruler-example.html.
 function drawRulerOverlay(ctx, startLL, endLL, props, opts) {
   const p = normalizeRulerStyle(props);
   const o = opts || {};
