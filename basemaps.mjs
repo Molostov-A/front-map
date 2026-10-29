@@ -21,8 +21,13 @@ const google = (lyrs) => [
   `https://mt3.google.com/vt/lyrs=${lyrs}&x={x}&y={y}&z={z}&hl=ru`
 ];
 
-const yandex = (l) => [
-  `https://core-renderer-tiles.maps.yandex.net/tiles?l=${l}&x={x}&y={y}&z={z}&scale=1&lang=ru_RU`
+// Схема (l=map) идёт с рендерера, а спутник/гибрид (l=sat[,skl]) — только с sat-хоста:
+// core-renderer-tiles на l=sat отдаёт 404 без CORS, и браузер видит это как сетевую ошибку.
+const YANDEX_RENDERER = 'core-renderer-tiles.maps.yandex.net';
+const YANDEX_SAT = 'sat01.maps.yandex.net';
+
+const yandex = (l, host) => [
+  `https://${host}/tiles?l=${l}&x={x}&y={y}&z={z}&scale=1&lang=ru_RU`
 ];
 
 const carto = (name) => [
@@ -42,9 +47,9 @@ export const BASEMAPS = [
   { id: 'google-hybrid', group: 'Google', label: 'Гибрид', style: rasterStyle({ tiles: google('y'), attribution: '© Google' }) },
   { id: 'google-terrain', group: 'Google', label: 'Рельеф', style: rasterStyle({ tiles: google('p'), attribution: '© Google' }) },
 
-  { id: 'yandex-scheme', group: 'Яндекс', label: 'Схема', style: rasterStyle({ tiles: yandex('map'), attribution: '© Яндекс' }) },
-  { id: 'yandex-sat', group: 'Яндекс', label: 'Спутник', style: rasterStyle({ tiles: yandex('sat'), attribution: '© Яндекс' }) },
-  { id: 'yandex-hybrid', group: 'Яндекс', label: 'Гибрид', style: rasterStyle({ tiles: yandex('sat,skl'), attribution: '© Яндекс' }) }
+  { id: 'yandex-scheme', group: 'Яндекс', label: 'Схема', style: rasterStyle({ tiles: yandex('map', YANDEX_RENDERER), attribution: '© Яндекс' }) },
+  { id: 'yandex-sat', group: 'Яндекс', label: 'Спутник', style: rasterStyle({ tiles: yandex('sat', YANDEX_SAT), attribution: '© Яндекс' }) },
+  { id: 'yandex-hybrid', group: 'Яндекс', label: 'Гибрид', style: rasterStyle({ tiles: yandex('sat,skl', YANDEX_SAT), attribution: '© Яндекс' }) }
 ];
 
 export const DEFAULT_BASEMAP_ID = 'yandex-scheme';
