@@ -2222,72 +2222,39 @@ function initPanels() {
 }
 
 /* ================= init ================= */
-(async function init() {
-  /* auth: показываем форму входа, пока пользователь не авторизован */
-  initLoginForm();
-  await ensureAuth();
-  updateUserBox();
-  initUsersModal();
-
-  /* modal bindings */
+// Модалки: имя/цвет слоя (prompt) и выбор варианта удаления.
+function bindModals() {
   $('#modal-ok').onclick = () => closeModal({ name: $('#modal-name').value, color: $('#modal-color').value });
   $('#modal-cancel').onclick = () => closeModal(null);
   $('#modal-back').onclick = (e) => { if (e.target.id === 'modal-back') closeModal(null); };
 
-  const base = await loadBaseStyle();
-  map = new maplibregl.Map({
-    container: 'map',
-    style: base,
-    center: [34.5, 48.7],
-    zoom: 6,
-    attributionControl: { compact: true }
-  });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-  map.on('error', (e) => {
-    const err = e.error;
-    const msg = 'map: ' + (err && err.message || e.type);
-    // Ошибки загрузки ресурсов/тайлов (AJAXError с url/status) не фатальны — пишем только в
-    // консоль, чтобы не затирать <title> (его использует e2e для проверки инициализации).
-    if (err && (err.url || typeof err.status === 'number')) console.error('[front-map] ' + msg);
-    else diag(msg);
-  });
-  map.on('zoom', updateHandleSizes);
-  map.on('move', updateHandleSizes);
-  map.on('zoom', updateAreaLabelVisibility);
-  map.on('move', updateAreaLabelVisibility);
-  window.__map = map;
-  document.title = 'boot';
-  await new Promise((res) => {
-    let done = false;
-    const finish = () => { if (!done) { done = true; clearTimeout(t); res(); } };
-    const t = setTimeout(finish, 10000);
-    map.once('load', finish);
-  });
-  document.title = 'loaded';
+  $('#delete-all').onclick = () => closeDelete('all');
+  $('#delete-from').onclick = () => closeDelete('from');
+  $('#delete-cancel').onclick = () => closeDelete(null);
+  $('#delete-back').onclick = (e) => { if (e.target.id === 'delete-back') closeDelete(null); };
+}
 
-  addOverlayLayers();
-  initRulerCanvas();
-  map.on('resize', resizeRulerCanvas);
-  map.on('move', drawRulers);
-  map.on('zoom', drawRulers);
-  syncArrowStyle();
-
-  /* basemap control */
+// Выпадающий список базовых карт.
+function bindBasemapSelect() {
   buildBasemapSelect();
   $('#basemap').addEventListener('change', async (e) => {
     try { await applyBasemap(e.target.value); }
     catch (err) { toast('Ошибка карты: ' + err.message); e.target.value = currentBasemapId; }
   });
+}
 
-  /* toolbar */
+// Тулбар: инструменты, удаление, сброс, новый слой.
+function bindToolbar() {
   document.querySelectorAll('#toolbar [data-tool]').forEach((b) => {
     b.onclick = () => setTool(b.dataset.tool);
   });
   $('#btn-delete').onclick = deleteSelected;
   $('#btn-clear').onclick = () => { if (!cancelDraft()) select(null); };
   $('#add-layer').onclick = addLayer;
+}
 
-  /* arrow style panel */
+// Панели стиля: контролы → state.<type>Style → выбранный объект (PUT).
+function bindStylePanels() {
   const bindArrow = (id, get, set) => {
     const el = $(id);
     el.addEventListener('input', () => {
@@ -2474,8 +2441,10 @@ function initPanels() {
     putArrowGeometry(f);
     updateArrowPanel();
   });
+}
 
-  /* timeline */
+// Таймлайн и календарь.
+function bindTimeline() {
   $('#tl-prev').onclick = () => stepDay(-1);
   $('#tl-next').onclick = () => stepDay(1);
   $('#tl-now').onclick = async () => {
@@ -2499,8 +2468,10 @@ function initPanels() {
       closeCalendar();
     }
   });
+}
 
-  /* dates panel */
+// Панель дат: создание/удаление объекта.
+function bindDatesPanel() {
   $('#dates-created').addEventListener('change', async () => {
     const id = state.selectedId; if (!id || !canEdit()) return;
     try { await api.send('PATCH', `/api/features/${id}`, { created_at: $('#dates-created').value }); await reload(); await refreshDates(); }
@@ -2516,14 +2487,10 @@ function initPanels() {
     try { await api.send('PATCH', `/api/features/${id}`, { deleted_at: null }); await reload(); await refreshDates(); }
     catch (e) { toast('Ошибка: ' + e.message); }
   };
+}
 
-  /* delete modal */
-  $('#delete-all').onclick = () => closeDelete('all');
-  $('#delete-from').onclick = () => closeDelete('from');
-  $('#delete-cancel').onclick = () => closeDelete(null);
-  $('#delete-back').onclick = (e) => { if (e.target.id === 'delete-back') closeDelete(null); };
-
-  /* map events */
+// События карты: рисование, выбор, перетаскивание узлов, курсор.
+function bindMapEvents() {
   map.on('click', (e) => {
     if (state.ignoreNextClick) { state.ignoreNextClick = false; return; }
     if (state.moveMode) return;
@@ -2771,8 +2738,10 @@ function initPanels() {
       })
       .catch((err) => { toast('Ошибка: ' + err.message); reload().catch(() => {}); });
   });
+}
 
-  // клавиатура
+// Клавиатура: Esc / Enter / Delete.
+function bindKeyboard() {
   document.addEventListener('keydown', (e) => {
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea') return;
@@ -2805,6 +2774,62 @@ function initPanels() {
     else if (e.key === 'Enter') { if (state.draft) finishDraft(); }
     else if (e.key === 'Delete' || e.key === 'Backspace') { if (state.selectedId) { e.preventDefault(); deleteSelected(); } }
   });
+}
+
+(async function init() {
+  /* auth: показываем форму входа, пока пользователь не авторизован */
+  initLoginForm();
+  await ensureAuth();
+  updateUserBox();
+  initUsersModal();
+
+  bindModals();
+
+  const base = await loadBaseStyle();
+  map = new maplibregl.Map({
+    container: 'map',
+    style: base,
+    center: [34.5, 48.7],
+    zoom: 6,
+    attributionControl: { compact: true }
+  });
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  map.on('error', (e) => {
+    const err = e.error;
+    const msg = 'map: ' + (err && err.message || e.type);
+    // Ошибки загрузки ресурсов/тайлов (AJAXError с url/status) не фатальны — пишем только в
+    // консоль, чтобы не затирать <title> (его использует e2e для проверки инициализации).
+    if (err && (err.url || typeof err.status === 'number')) console.error('[front-map] ' + msg);
+    else diag(msg);
+  });
+  map.on('zoom', updateHandleSizes);
+  map.on('move', updateHandleSizes);
+  map.on('zoom', updateAreaLabelVisibility);
+  map.on('move', updateAreaLabelVisibility);
+  window.__map = map;
+  document.title = 'boot';
+  await new Promise((res) => {
+    let done = false;
+    const finish = () => { if (!done) { done = true; clearTimeout(t); res(); } };
+    const t = setTimeout(finish, 10000);
+    map.once('load', finish);
+  });
+  document.title = 'loaded';
+
+  addOverlayLayers();
+  initRulerCanvas();
+  map.on('resize', resizeRulerCanvas);
+  map.on('move', drawRulers);
+  map.on('zoom', drawRulers);
+  syncArrowStyle();
+
+  bindBasemapSelect();
+  bindToolbar();
+  bindStylePanels();
+  bindTimeline();
+  bindDatesPanel();
+  bindMapEvents();
+  bindKeyboard();
 
   // старт
   initPanels();
