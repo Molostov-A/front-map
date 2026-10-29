@@ -6,7 +6,7 @@ import { putArrowGeometry } from './sync.js';
 import { canvasLngLat } from '../map/markers.js';
 import { refreshSources } from '../map/render.js';
 import { updateHint } from '../ui/hint.js';
-import { updateArrowPanel, updateMeasurePanels } from '../ui/style-panels.js';
+import { updateStylePanels, updateMeasurePanels } from '../ui/style-panels.js';
 
 export function beginMove(start) {
   if (!canEdit()) return;
@@ -59,6 +59,6 @@ export function setMoveMode(on) {
     } catch (e) { /* ignore */ }
   }
   if (!state.moveMode) state.move = null;
-  updateArrowPanel();
+  updateStylePanels();
   updateHint();
 }

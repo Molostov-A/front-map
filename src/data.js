@@ -6,7 +6,7 @@ import { state } from './core/store.js';
 import { rebuildStyle } from './map/style-layers.js';
 import { updateDatesPanel } from './ui/dates-panel.js';
 import { renderLayerList } from './ui/layer-list.js';
-import { updateArrowPanel } from './ui/style-panels.js';
+import { updateStylePanels } from './ui/style-panels.js';
 
 export async function reload() {
   const q = `?date=${encodeURIComponent(currentDay())}`;
@@ -32,6 +32,6 @@ export async function reload() {
   }
   rebuildStyle();
   renderLayerList();
-  updateArrowPanel();
+  updateStylePanels();
   updateDatesPanel();
 }

@@ -7,7 +7,7 @@ import { map, setMap } from './src/core/store.js';
 import { $, diag } from './src/core/util.js';
 import { reload } from './src/data.js';
 import { beginMove } from './src/edit/move-mode.js';
-import { select, syncArrowStyle } from './src/edit/selection.js';
+import { select, syncStyle } from './src/edit/selection.js';
 import { deleteSelected } from './src/edit/sync.js';
 import { updateAreaLabelVisibility } from './src/map/area-labels.js';
 import { applyBasemap, bindBasemapSelect, currentBasemapId, loadBaseStyle } from './src/map/basemap.js';
@@ -88,7 +88,7 @@ hooks.unauthorized = showLogin;
   map.on('resize', resizeRulerCanvas);
   map.on('move', drawRulers);
   map.on('zoom', drawRulers);
-  syncArrowStyle();
+  syncStyle('arrow');
 
   bindBasemapSelect();
   bindToolbar();

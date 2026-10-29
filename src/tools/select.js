@@ -14,7 +14,7 @@ import { refreshSources } from '../map/render.js';
 import { fmLIds } from '../map/style-layers.js';
 import { refreshDates } from '../ui/dates-panel.js';
 import { promptModal } from '../ui/modals.js';
-import { updateArrowPanel } from '../ui/style-panels.js';
+import { updateStylePanels } from '../ui/style-panels.js';
 import { ensureCanDraw } from './draw.js';
 
 const hitFeatures = (point) => {
@@ -35,7 +35,7 @@ export const selectTool = {
         meta.push({ auto: true });
         f.properties.nodeMeta = meta;
         putArrowGeometry(f);
-        updateArrowPanel();
+        updateStylePanels();
       }
       return;
     }
@@ -60,7 +60,7 @@ export const selectTool = {
         meta.splice(near.segIndex + 1, 0, { auto: true });
         sel.properties.nodeMeta = meta;
         putArrowGeometry(sel);
-        updateArrowPanel();
+        updateStylePanels();
       }
       return;
     }
@@ -80,7 +80,7 @@ export const selectTool = {
         if (i >= 0) state.features[i] = upd;
         if (upd.id === state.selectedId) state.labelStyle = normalizeStyle('label', upd.properties);
         refreshSources();
-        updateArrowPanel();
+        updateStylePanels();
         refreshDates();
       } catch (err) { toast('Ошибка: ' + err.message); }
     });

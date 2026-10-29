@@ -9,7 +9,7 @@ import { select } from '../edit/selection.js';
 import { refreshSources } from '../map/render.js';
 import { updateHint } from '../ui/hint.js';
 import { renderLayerList } from '../ui/layer-list.js';
-import { updateArrowPanel } from '../ui/style-panels.js';
+import { updateStylePanels } from '../ui/style-panels.js';
 
 export function setTool(t) {
   if (!canEdit()) t = 'select';
@@ -24,7 +24,7 @@ export function setTool(t) {
   }
   refreshSources();
   updateHint();
-  updateArrowPanel();
+  updateStylePanels();
 }
 
 export function ensureCanDraw() {
@@ -66,7 +66,7 @@ export function commitDraft(geometry, type) {
   refreshSources();
   createFeature({ layer_id: state.activeLayerId, type, geometry, properties: defaultPropsFor(type) })
     .then((created) => {
-      if ((type === 'arrow' || type === 'ruler') && created) { select(created.id); updateArrowPanel(); }
+      if ((type === 'arrow' || type === 'ruler') && created) { select(created.id); updateStylePanels(); }
     });
 }
 

@@ -15,7 +15,7 @@ import { refreshDates } from '../ui/dates-panel.js';
 import { updateHint } from '../ui/hint.js';
 import { renderLayerList } from '../ui/layer-list.js';
 import { closeDelete, closeModal, deleteOpen, modalOpen } from '../ui/modals.js';
-import { updateArrowPanel, updateMeasurePanels } from '../ui/style-panels.js';
+import { updateStylePanels, updateMeasurePanels } from '../ui/style-panels.js';
 import { closeCalendar } from '../ui/timeline.js';
 import { cancelDraft, ensureCanDraw } from './draw.js';
 import { DRAW_TOOLS, finishDraft } from './index.js';
@@ -41,7 +41,7 @@ export function bindMapEvents() {
       state.appendArrow = false;
       refreshSources();
       updateHint();
-      updateArrowPanel();
+      updateStylePanels();
       return;
     }
     if (state.draft) { e.preventDefault(); finishDraft(); }
@@ -98,7 +98,7 @@ export function bindMapEvents() {
         f.geometry.coordinates.splice(idx, 1);
         if (Array.isArray(f.properties.nodeMeta)) f.properties.nodeMeta.splice(idx, 1);
         putArrowGeometry(f);
-        updateArrowPanel();
+        updateStylePanels();
       }
       return;
     }
@@ -158,7 +158,7 @@ export function bindKeyboard() {
         state.appendArrow = false;
         refreshSources();
         updateHint();
-        updateArrowPanel();
+        updateStylePanels();
         return;
       }
       const d = state.draft;

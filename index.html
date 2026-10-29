@@ -66,32 +66,32 @@
       <div class="as-title">Заливка</div>
       <div class="as-row">
         <label for="arrow-color">Цвет</label>
-        <input type="color" id="arrow-color" value="#7f8cff">
-        <span class="as-val" id="arrow-color-val">#7f8cff</span>
+        <input type="color" id="arrow-color" data-field="color" value="#7f8cff">
+        <span class="as-val" id="arrow-color-val" data-out="color">#7f8cff</span>
       </div>
       <div class="as-row">
         <label for="arrow-opacity">Прозр.</label>
-        <input type="range" id="arrow-opacity" min="10" max="100" value="95">
-        <span class="as-val" id="arrow-opacity-val">95%</span>
+        <input type="range" id="arrow-opacity" data-field="opacity" data-scale="100" min="10" max="100" value="95">
+        <span class="as-val" id="arrow-opacity-val" data-out="opacity" data-format="percent">95%</span>
       </div>
 
       <div class="as-title">Ствол</div>
       <div class="as-row">
         <label for="arrow-width">Основание, м</label>
-        <input type="number" id="arrow-width" value="600" min="1" max="200000" step="10">
-        <span class="as-val" id="arrow-width-val">600 м</span>
+        <input type="number" id="arrow-width" data-field="baseWidth" value="600" min="1" max="200000" step="10">
+        <span class="as-val" id="arrow-width-val" data-out="baseWidth" data-format="m">600 м</span>
       </div>
       <div class="as-row">
         <label>Режим</label>
-        <div class="as-seg" id="arrow-stem-mode">
-          <button data-mode="sharp" class="active">Прямые</button>
-          <button data-mode="smooth">Сглаж.</button>
+        <div class="as-seg" id="arrow-stem-mode" data-field="stemMode">
+          <button data-value="sharp" class="active">Прямые</button>
+          <button data-value="smooth">Сглаж.</button>
         </div>
       </div>
       <div class="as-row">
         <label for="arrow-smooth">Сглаживание</label>
-        <input type="range" id="arrow-smooth" min="0" max="100" value="60" disabled>
-        <span class="as-val" id="arrow-smooth-val">0.60</span>
+        <input type="range" id="arrow-smooth" data-field="smoothAmount" data-scale="100" data-enabled-if="stemMode=smooth" min="0" max="100" value="60" disabled>
+        <span class="as-val" id="arrow-smooth-val" data-out="smoothAmount" data-format="fixed2">0.60</span>
       </div>
       <div class="as-row">
         <label><input type="checkbox" id="arrow-autosmooth" checked> Авто-ручки</label>
@@ -100,69 +100,69 @@
       <div class="as-title">Наконечник</div>
       <div class="as-row">
         <label for="arrow-head-width">Основание, м</label>
-        <input type="number" id="arrow-head-width" value="300" min="1" max="200000" step="10">
-        <span class="as-val" id="arrow-head-width-val">300 м</span>
+        <input type="number" id="arrow-head-width" data-field="headBaseWidth" value="300" min="1" max="200000" step="10">
+        <span class="as-val" id="arrow-head-width-val" data-out="headBaseWidth" data-format="m">300 м</span>
       </div>
       <div class="as-row">
         <label for="arrow-head-length">Длина, м</label>
-        <input type="number" id="arrow-head-length" value="900" min="1" max="200000" step="10">
-        <span class="as-val" id="arrow-head-length-val">900 м</span>
+        <input type="number" id="arrow-head-length" data-field="headLength" value="900" min="1" max="200000" step="10">
+        <span class="as-val" id="arrow-head-length-val" data-out="headLength" data-format="m">900 м</span>
       </div>
       <div class="as-row">
         <label for="arrow-head-shape">Форма</label>
-        <input type="range" id="arrow-head-shape" min="0" max="100" value="0">
-        <span class="as-val" id="arrow-head-shape-val">0.00</span>
+        <input type="range" id="arrow-head-shape" data-field="headShape" data-scale="100" min="0" max="100" value="0">
+        <span class="as-val" id="arrow-head-shape-val" data-out="headShape" data-format="fixed2">0.00</span>
       </div>
 
       <div class="as-title">Ушки</div>
       <div class="as-row">
-        <label><input type="checkbox" id="arrow-ears" checked> Включены</label>
+        <label><input type="checkbox" id="arrow-ears" data-field="earsEnabled" checked> Включены</label>
       </div>
       <div class="as-row">
         <label for="arrow-ear-spread">Разлёт, м</label>
-        <input type="number" id="arrow-ear-spread" value="1400" min="0" max="200000" step="10">
-        <span class="as-val" id="arrow-ear-spread-val">1400 м</span>
+        <input type="number" id="arrow-ear-spread" data-field="earSpread" data-enabled-if="earsEnabled" value="1400" min="0" max="200000" step="10">
+        <span class="as-val" id="arrow-ear-spread-val" data-out="earSpread" data-format="m">1400 м</span>
       </div>
       <div class="as-row">
         <label for="arrow-ear-forward">Смещение, м</label>
-        <input type="number" id="arrow-ear-forward" value="0" min="-200000" max="200000" step="10">
-        <span class="as-val" id="arrow-ear-forward-val">0 м</span>
+        <input type="number" id="arrow-ear-forward" data-field="earForward" data-enabled-if="earsEnabled" value="0" min="-200000" max="200000" step="10">
+        <span class="as-val" id="arrow-ear-forward-val" data-out="earForward" data-format="m">0 м</span>
       </div>
 
       <div class="as-title">Свечение</div>
       <div class="as-row">
-        <label><input type="checkbox" id="arrow-glow"> Включено</label>
+        <label><input type="checkbox" id="arrow-glow" data-field="glowEnabled"> Включено</label>
       </div>
       <div class="as-row">
         <label for="arrow-glow-blur">Сила</label>
-        <input type="range" id="arrow-glow-blur" min="0" max="60" value="12" disabled>
-        <span class="as-val" id="arrow-glow-blur-val">12</span>
+        <input type="range" id="arrow-glow-blur" data-field="glowBlur" data-enabled-if="glowEnabled" min="0" max="60" value="12" disabled>
+        <span class="as-val" id="arrow-glow-blur-val" data-out="glowBlur">12</span>
       </div>
       <div class="as-row">
         <label for="arrow-glow-color">Цвет</label>
-        <input type="color" id="arrow-glow-color" value="#7f8cff" disabled>
+        <input type="color" id="arrow-glow-color" data-field="glowColor" data-enabled-if="glowEnabled" value="#7f8cff" disabled>
       </div>
 
       <div class="as-title">Обводка</div>
       <div class="as-row">
-        <label><input type="checkbox" id="arrow-stroke" checked> Включена</label>
+        <label><input type="checkbox" id="arrow-stroke" data-field="strokeEnabled" checked> Включена</label>
       </div>
       <div class="as-row">
         <label for="arrow-stroke-width">Толщина</label>
-        <input type="range" id="arrow-stroke-width" min="0" max="100" value="20">
-        <span class="as-val" id="arrow-stroke-width-val">2.0</span>
+        <input type="range" id="arrow-stroke-width" data-field="strokeWidth" data-scale="10" data-enabled-if="strokeEnabled" min="0" max="100" value="20">
+        <span class="as-val" id="arrow-stroke-width-val" data-out="strokeWidth" data-format="fixed1">2.0</span>
       </div>
       <div class="as-row">
         <label for="arrow-stroke-color">Цвет</label>
-        <input type="color" id="arrow-stroke-color" value="#ffffff">
+        <input type="color" id="arrow-stroke-color" data-field="strokeColor" data-enabled-if="strokeEnabled" value="#ffffff">
       </div>
       <div class="as-row">
         <label for="arrow-stroke-opacity">Прозр.</label>
-        <input type="range" id="arrow-stroke-opacity" min="0" max="100" value="100">
-        <span class="as-val" id="arrow-stroke-opacity-val">1.00</span>
+        <input type="range" id="arrow-stroke-opacity" data-field="strokeOpacity" data-scale="100" data-enabled-if="strokeEnabled" min="0" max="100" value="100">
+        <span class="as-val" id="arrow-stroke-opacity-val" data-out="strokeOpacity" data-format="fixed2">1.00</span>
       </div>
       <div class="as-row">
-        <label><input type="checkbox" id="arrow-stroke-dash"> Пунктирная</label>
+        <label><input type="checkbox" id="arrow-stroke-dash" data-field="strokeDashed" data-enabled-if="strokeEnabled"> Пунктирная</label>
       </div>
 
       <div class="as-btns">
@@ -176,22 +176,22 @@
       <div class="as-title">Линия</div>
       <div class="as-row">
         <label for="line-color">Цвет</label>
-        <input type="color" id="line-color" value="#e63946">
-        <span class="as-val" id="line-color-val">#e63946</span>
+        <input type="color" id="line-color" data-field="color" value="#e63946">
+        <span class="as-val" id="line-color-val" data-out="color">#e63946</span>
       </div>
       <div class="as-row">
         <label for="line-width">Толщина</label>
-        <input type="number" id="line-width" value="3" min="1" max="200" step="1">
-        <span class="as-val" id="line-width-val">3 px</span>
+        <input type="number" id="line-width" data-field="width" value="3" min="1" max="200" step="1">
+        <span class="as-val" id="line-width-val" data-out="width" data-format="px">3 px</span>
       </div>
       <div class="as-row">
         <label for="line-opacity">Прозр.</label>
-        <input type="range" id="line-opacity" min="0" max="100" value="100">
-        <span class="as-val" id="line-opacity-val">100%</span>
+        <input type="range" id="line-opacity" data-field="opacity" data-scale="100" min="0" max="100" value="100">
+        <span class="as-val" id="line-opacity-val" data-out="opacity" data-format="percent">100%</span>
       </div>
       <div class="as-row">
         <label for="line-dash">Тип</label>
-        <select id="line-dash">
+        <select id="line-dash" data-field="dash">
           <option value="solid">Сплошная</option>
           <option value="dotted">Пунктир</option>
           <option value="dashed">Штрих</option>
@@ -200,15 +200,15 @@
       </div>
       <div class="as-row">
         <label>Режим</label>
-        <div class="as-seg" id="line-smooth">
-          <button data-smooth="0" class="active">Прямая</button>
-          <button data-smooth="1">Сглаженная</button>
+        <div class="as-seg" id="line-smooth" data-field="smooth" data-type="bool">
+          <button data-value="0" class="active">Прямая</button>
+          <button data-value="1">Сглаженная</button>
         </div>
       </div>
       <div class="as-row">
         <label for="line-smooth-amount">Сглаживание</label>
-        <input type="range" id="line-smooth-amount" min="0" max="100" value="60" disabled>
-        <span class="as-val" id="line-smooth-amount-val">0.60</span>
+        <input type="range" id="line-smooth-amount" data-field="smoothAmount" data-scale="100" data-enabled-if="smooth" min="0" max="100" value="60" disabled>
+        <span class="as-val" id="line-smooth-amount-val" data-out="smoothAmount" data-format="fixed2">0.60</span>
       </div>
       <div class="as-row" id="line-length-row" style="display: none;">
         <label>Длина</label>
@@ -223,35 +223,35 @@
       <div class="as-title">Заливка</div>
       <div class="as-row">
         <label for="polygon-color">Цвет</label>
-        <input type="color" id="polygon-color" value="#e63946">
-        <span class="as-val" id="polygon-color-val">#e63946</span>
+        <input type="color" id="polygon-color" data-field="color" value="#e63946">
+        <span class="as-val" id="polygon-color-val" data-out="color">#e63946</span>
       </div>
       <div class="as-row">
         <label for="polygon-opacity">Прозр.</label>
-        <input type="range" id="polygon-opacity" min="0" max="100" value="25">
-        <span class="as-val" id="polygon-opacity-val">25%</span>
+        <input type="range" id="polygon-opacity" data-field="opacity" data-scale="100" min="0" max="100" value="25">
+        <span class="as-val" id="polygon-opacity-val" data-out="opacity" data-format="percent">25%</span>
       </div>
       <div class="as-row">
         <label>Вид</label>
-        <div class="as-seg" id="polygon-fill">
-          <button data-fill="solid" class="active">Сплошная</button>
-          <button data-fill="hatched">Штриховка</button>
+        <div class="as-seg" id="polygon-fill" data-field="fill">
+          <button data-value="solid" class="active">Сплошная</button>
+          <button data-value="hatched">Штриховка</button>
         </div>
       </div>
       <div class="as-title">Обводка</div>
       <div class="as-row">
         <label for="polygon-outline-width">Толщина</label>
-        <input type="number" id="polygon-outline-width" value="2" min="0" max="100" step="1">
-        <span class="as-val" id="polygon-outline-width-val">2 px</span>
+        <input type="number" id="polygon-outline-width" data-field="outlineWidth" value="2" min="0" max="100" step="1">
+        <span class="as-val" id="polygon-outline-width-val" data-out="outlineWidth" data-format="px">2 px</span>
       </div>
       <div class="as-row">
         <label for="polygon-outline-color">Цвет</label>
-        <input type="color" id="polygon-outline-color" value="#e63946">
-        <span class="as-val" id="polygon-outline-color-val">#e63946</span>
+        <input type="color" id="polygon-outline-color" data-field="outlineColor" value="#e63946">
+        <span class="as-val" id="polygon-outline-color-val" data-out="outlineColor">#e63946</span>
       </div>
       <div class="as-row">
         <label for="polygon-outline-dash">Тип</label>
-        <select id="polygon-outline-dash">
+        <select id="polygon-outline-dash" data-field="outlineDash">
           <option value="solid">Сплошная</option>
           <option value="dotted">Пунктир</option>
           <option value="dashed">Штрих</option>
@@ -265,17 +265,17 @@
       <div class="as-title">Подпись площади</div>
       <div class="as-row">
         <label for="polygon-area-color">Цвет текста</label>
-        <input type="color" id="polygon-area-color" value="#eaf0ff">
-        <span class="as-val" id="polygon-area-color-val">#eaf0ff</span>
+        <input type="color" id="polygon-area-color" data-field="areaColor" value="#eaf0ff">
+        <span class="as-val" id="polygon-area-color-val" data-out="areaColor">#eaf0ff</span>
       </div>
       <div class="as-row">
         <label for="polygon-area-size">Размер</label>
-        <input type="range" id="polygon-area-size" min="6" max="48" value="12">
-        <span class="as-val" id="polygon-area-size-val">12 px</span>
+        <input type="range" id="polygon-area-size" data-field="areaFontSize" min="6" max="48" value="12">
+        <span class="as-val" id="polygon-area-size-val" data-out="areaFontSize" data-format="pxRound">12 px</span>
       </div>
       <div class="as-row">
         <label for="polygon-area-bg">Подложка</label>
-        <input type="checkbox" id="polygon-area-bg" checked>
+        <input type="checkbox" id="polygon-area-bg" data-field="areaBg" checked>
       </div>
       <div class="as-btns">
         <button id="polygon-move" data-move="polygon" type="button">Переместить</button>
@@ -286,43 +286,43 @@
       <div class="as-title">Точка</div>
       <div class="as-row">
         <label for="point-color">Цвет</label>
-        <input type="color" id="point-color" value="#e63946">
-        <span class="as-val" id="point-color-val">#e63946</span>
+        <input type="color" id="point-color" data-field="color" value="#e63946">
+        <span class="as-val" id="point-color-val" data-out="color">#e63946</span>
       </div>
       <div class="as-row">
         <label for="point-size">Размер</label>
-        <input type="number" id="point-size" value="7" min="2" max="60" step="1">
-        <span class="as-val" id="point-size-val">7 px</span>
+        <input type="number" id="point-size" data-field="size" value="7" min="2" max="60" step="1">
+        <span class="as-val" id="point-size-val" data-out="size" data-format="px">7 px</span>
       </div>
 
       <div class="as-title">Подпись</div>
       <div class="as-row">
         <label for="point-caption">Текст</label>
-        <input type="text" id="point-caption" value="" placeholder="Без подписи">
+        <input type="text" id="point-caption" data-field="caption" value="" placeholder="Без подписи">
       </div>
       <div class="as-row">
         <label>Показ</label>
-        <div class="as-seg" id="point-caption-mode">
-          <button data-mode="never">Скрыта</button>
-          <button data-mode="selected" class="active">При выделении</button>
-          <button data-mode="always">Всегда</button>
+        <div class="as-seg" id="point-caption-mode" data-field="captionMode">
+          <button data-value="never">Скрыта</button>
+          <button data-value="selected" class="active">При выделении</button>
+          <button data-value="always">Всегда</button>
         </div>
       </div>
 
       <div class="as-title">Оформление подписи</div>
       <div class="as-row">
         <label for="point-label-color">Цвет</label>
-        <input type="color" id="point-label-color" value="#ffffff">
-        <span class="as-val" id="point-label-color-val">#ffffff</span>
+        <input type="color" id="point-label-color" data-field="label.color" value="#ffffff">
+        <span class="as-val" id="point-label-color-val" data-out="label.color">#ffffff</span>
       </div>
       <div class="as-row">
         <label for="point-label-size">Размер</label>
-        <input type="number" id="point-label-size" value="13" min="6" max="96" step="1">
-        <span class="as-val" id="point-label-size-val">13 px</span>
+        <input type="number" id="point-label-size" data-field="label.size" value="13" min="6" max="96" step="1">
+        <span class="as-val" id="point-label-size-val" data-out="label.size" data-format="px">13 px</span>
       </div>
       <div class="as-row">
         <label for="point-label-font">Шрифт</label>
-        <select id="point-label-font">
+        <select id="point-label-font" data-field="label.font">
           <option value="system">Системный</option>
           <option value="sans">Без засечек</option>
           <option value="serif">С засечками</option>
@@ -332,23 +332,23 @@
       </div>
       <div class="as-row">
         <label for="point-label-halo-color">Обводка</label>
-        <input type="color" id="point-label-halo-color" value="#0b0d10">
-        <input type="number" id="point-label-halo-width" value="2" min="0" max="10" step="1" title="Толщина обводки">
+        <input type="color" id="point-label-halo-color" data-field="label.haloColor" value="#0b0d10">
+        <input type="number" id="point-label-halo-width" data-field="label.haloWidth" value="2" min="0" max="10" step="1" title="Толщина обводки">
       </div>
       <div class="as-row">
         <label for="point-label-opacity">Прозр.</label>
-        <input type="range" id="point-label-opacity" min="0" max="100" value="100">
-        <span class="as-val" id="point-label-opacity-val">100%</span>
+        <input type="range" id="point-label-opacity" data-field="label.opacity" data-scale="100" min="0" max="100" value="100">
+        <span class="as-val" id="point-label-opacity-val" data-out="label.opacity" data-format="percent">100%</span>
       </div>
       <div class="as-row">
-        <label><input type="checkbox" id="point-label-bg"> Фон</label>
-        <input type="color" id="point-label-bg-color" value="#1b1e24">
+        <label><input type="checkbox" id="point-label-bg" data-field="label.bg"> Фон</label>
+        <input type="color" id="point-label-bg-color" data-field="label.bgColor" data-enabled-if="label.bg" value="#1b1e24">
       </div>
       <div class="as-checks">
-        <label><input type="checkbox" id="point-label-bold"> Жирный</label>
-        <label><input type="checkbox" id="point-label-italic"> Курсив</label>
-        <label><input type="checkbox" id="point-label-underline"> Подчёркнутый</label>
-        <label><input type="checkbox" id="point-label-strike"> Зачёркнутый</label>
+        <label><input type="checkbox" id="point-label-bold" data-field="label.bold"> Жирный</label>
+        <label><input type="checkbox" id="point-label-italic" data-field="label.italic"> Курсив</label>
+        <label><input type="checkbox" id="point-label-underline" data-field="label.underline"> Подчёркнутый</label>
+        <label><input type="checkbox" id="point-label-strike" data-field="label.strike"> Зачёркнутый</label>
       </div>
       <div class="as-btns">
         <button id="point-move" data-move="point" type="button">Переместить</button>
@@ -359,21 +359,21 @@
       <div class="as-title">Надпись</div>
       <div class="as-row">
         <label for="label-text">Текст</label>
-        <input type="text" id="label-text" value="">
+        <input type="text" id="label-text" data-field="text" value="">
       </div>
       <div class="as-row">
         <label for="label-color">Цвет</label>
-        <input type="color" id="label-color" value="#ffffff">
-        <span class="as-val" id="label-color-val">#ffffff</span>
+        <input type="color" id="label-color" data-field="label.color" value="#ffffff">
+        <span class="as-val" id="label-color-val" data-out="label.color">#ffffff</span>
       </div>
       <div class="as-row">
         <label for="label-size">Размер</label>
-        <input type="number" id="label-size" value="13" min="6" max="96" step="1">
-        <span class="as-val" id="label-size-val">13 px</span>
+        <input type="number" id="label-size" data-field="label.size" value="13" min="6" max="96" step="1">
+        <span class="as-val" id="label-size-val" data-out="label.size" data-format="px">13 px</span>
       </div>
       <div class="as-row">
         <label for="label-font">Шрифт</label>
-        <select id="label-font">
+        <select id="label-font" data-field="label.font">
           <option value="system">Системный</option>
           <option value="sans">Без засечек</option>
           <option value="serif">С засечками</option>
@@ -383,23 +383,23 @@
       </div>
       <div class="as-row">
         <label for="label-halo-color">Обводка</label>
-        <input type="color" id="label-halo-color" value="#0b0d10">
-        <input type="number" id="label-halo-width" value="2" min="0" max="10" step="1" title="Толщина обводки">
+        <input type="color" id="label-halo-color" data-field="label.haloColor" value="#0b0d10">
+        <input type="number" id="label-halo-width" data-field="label.haloWidth" value="2" min="0" max="10" step="1" title="Толщина обводки">
       </div>
       <div class="as-row">
         <label for="label-opacity">Прозр.</label>
-        <input type="range" id="label-opacity" min="0" max="100" value="100">
-        <span class="as-val" id="label-opacity-val">100%</span>
+        <input type="range" id="label-opacity" data-field="label.opacity" data-scale="100" min="0" max="100" value="100">
+        <span class="as-val" id="label-opacity-val" data-out="label.opacity" data-format="percent">100%</span>
       </div>
       <div class="as-row">
-        <label><input type="checkbox" id="label-bg"> Фон</label>
-        <input type="color" id="label-bg-color" value="#1b1e24">
+        <label><input type="checkbox" id="label-bg" data-field="label.bg"> Фон</label>
+        <input type="color" id="label-bg-color" data-field="label.bgColor" data-enabled-if="label.bg" value="#1b1e24">
       </div>
       <div class="as-checks">
-        <label><input type="checkbox" id="label-bold"> Жирный</label>
-        <label><input type="checkbox" id="label-italic"> Курсив</label>
-        <label><input type="checkbox" id="label-underline"> Подчёркнутый</label>
-        <label><input type="checkbox" id="label-strike"> Зачёркнутый</label>
+        <label><input type="checkbox" id="label-bold" data-field="label.bold"> Жирный</label>
+        <label><input type="checkbox" id="label-italic" data-field="label.italic"> Курсив</label>
+        <label><input type="checkbox" id="label-underline" data-field="label.underline"> Подчёркнутый</label>
+        <label><input type="checkbox" id="label-strike" data-field="label.strike"> Зачёркнутый</label>
       </div>
       <div class="as-btns">
         <button id="label-move" data-move="label" type="button">Переместить</button>
@@ -410,32 +410,32 @@
       <div class="as-title">Линейка</div>
       <div class="as-row">
         <label for="ruler-color">Цвет</label>
-        <input type="color" id="ruler-color" value="#e0b050">
-        <span class="as-val" id="ruler-color-val">#e0b050</span>
+        <input type="color" id="ruler-color" data-field="color" value="#e0b050">
+        <span class="as-val" id="ruler-color-val" data-out="color">#e0b050</span>
       </div>
       <div class="as-row">
         <label for="ruler-width">Толщина</label>
-        <input type="range" id="ruler-width" min="0.5" max="40" step="0.5" value="3">
-        <span class="as-val" id="ruler-width-val">3 px</span>
+        <input type="range" id="ruler-width" data-field="width" min="0.5" max="40" step="0.5" value="3">
+        <span class="as-val" id="ruler-width-val" data-out="width" data-format="px">3 px</span>
       </div>
       <div class="as-row">
         <label for="ruler-opacity">Прозр.</label>
-        <input type="range" id="ruler-opacity" min="0" max="100" value="100">
-        <span class="as-val" id="ruler-opacity-val">100%</span>
+        <input type="range" id="ruler-opacity" data-field="opacity" data-scale="100" min="0" max="100" value="100">
+        <span class="as-val" id="ruler-opacity-val" data-out="opacity" data-format="percent">100%</span>
       </div>
       <div class="as-row">
         <label for="ruler-font-size">Шрифт</label>
-        <input type="number" id="ruler-font-size" min="6" max="96" step="1" value="12">
-        <span class="as-val" id="ruler-font-size-val">12 px</span>
+        <input type="number" id="ruler-font-size" data-field="fontSize" min="6" max="96" step="1" value="12">
+        <span class="as-val" id="ruler-font-size-val" data-out="fontSize" data-format="pxRound">12 px</span>
       </div>
       <div class="as-row">
         <label for="ruler-label-color">Цвет текста</label>
-        <input type="color" id="ruler-label-color" value="#eaf0ff">
-        <span class="as-val" id="ruler-label-color-val">#eaf0ff</span>
+        <input type="color" id="ruler-label-color" data-field="labelColor" value="#eaf0ff">
+        <span class="as-val" id="ruler-label-color-val" data-out="labelColor">#eaf0ff</span>
       </div>
       <div class="as-checks">
-        <label><input type="checkbox" id="ruler-ticks" checked> Деления</label>
-        <label><input type="checkbox" id="ruler-labels" checked> Подписи</label>
+        <label><input type="checkbox" id="ruler-ticks" data-field="showTicks" checked> Деления</label>
+        <label><input type="checkbox" id="ruler-labels" data-field="showLabels" checked> Подписи</label>
       </div>
       <div class="as-row" id="ruler-length-row" style="display:none">
         <label>Длина</label>
