@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { loadModule, deferred } from './module-harness.mjs';
 
 const tick = () => new Promise((r) => setImmediate(r));
-function setup() {
+function setup(askDelete = async () => null) {
   let day = '2026-11-13';
   const f = { id: 1, properties: { color: 'initial', label: { size: 12 } }, geometry: { type: 'Point', coordinates: [1, 2] } };
   const state = { features: [f], selectedId: 1 };
@@ -15,7 +15,7 @@ function setup() {
     setTimeout: (fn) => { timers.set(++timer, fn); return timer; },
     clearTimeout: (id) => timers.delete(id), toast: (s) => errors.push(s),
     refreshSources() {}, refreshDates() {}, updateDatesPanel() {},
-    hooks: { reload: async () => {} }, askDelete: async () => null
+    hooks: { reload: async () => {} }, askDelete
   });
   return { ...mod, f, state, calls, timers, errors, setDay: (d) => { day = d; } };
 }
@@ -82,4 +82,32 @@ test('ошибка PUT не блокирует очередь; другие об
   assert.equal(x.calls.length, 3);
   x.calls[2].resolve({ id: 1 }); await b;
   assert.equal(x.errors.length, 1);
+});
+
+
+test('отмена удаления сохраняет ожидающий стиль', async () => {
+  const x = setup(); x.scheduleArrowPut(x.f); await x.deleteSelected();
+  assert.equal(x.pendingPuts.size, 1); assert.equal(x.calls.length, 0);
+  const p = x.sendPendingPut(1); await tick();
+  x.calls[0].resolve({ id: 1 }); await p;
+});
+
+test('подтверждённое удаление ждёт PUT; ошибка DELETE не теряет стиль', async () => {
+  for (const fail of [false, true]) {
+    const dialog = deferred(); const x = setup(() => dialog.promise);
+    x.scheduleArrowPut(x.f);
+    const deleting = x.deleteSelected();
+    const saving = x.sendPendingPut(1); await tick();
+    // Во время открытого диалога появилась ещё одна правка.
+    x.f.properties.color = 'new'; x.scheduleArrowPut(x.f);
+    dialog.resolve('all'); await tick(); assert.equal(x.calls.length, 1);
+    x.calls[0].resolve({ id: 1 }); await saving; await tick();
+    assert.equal(x.calls[1].method, 'PUT'); assert.equal(x.calls[1].body.properties.color, 'new');
+    x.calls[1].resolve({ id: 1 }); await tick();
+    assert.equal(x.calls[2].method, 'DELETE');
+    if (fail) x.calls[2].reject(new Error('delete failed')); else x.calls[2].resolve({ ok: true });
+    await deleting;
+    assert.equal(x.state.selectedId, fail ? 1 : null);
+    assert.equal(x.pendingPuts.size, 0);
+  }
 });

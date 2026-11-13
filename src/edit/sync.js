@@ -79,9 +79,13 @@ export async function deleteSelected() {
   if (!state.selectedId) { toast('Ничего не выбрано'); return; }
   const id = state.selectedId;
   const day = currentDay();
-  cancelArrowPut(id);
   const mode = await askDelete();
   if (!mode) return;
+  // Сначала сохраняем все правки объекта: отмена/ошибка удаления не теряет стиль.
+  for (const p of [...pendingPuts.values()]) {
+    if (p.f.id === id) await sendPendingPut(id, p.date);
+  }
+  await (inFlight.get(id) || Promise.resolve()).catch(() => {});
   try {
     if (mode === 'from') {
       await api.send('DELETE', `/api/features/${id}?mode=from&date=${encodeURIComponent(day)}`);
