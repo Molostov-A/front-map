@@ -101,6 +101,7 @@ export interface AppState {
   move: { featureId: number; start: LngLat; orig: any; moved: boolean } | null;
   ignoreNextClick: boolean;
   /** Выбранный день YYYY-MM-DD; null — «сейчас». */
+  comparisonSettingsOpen: boolean;
   date: string | null;
   dates: FeatureDates | null;
   /** Отображаемый месяц календаря (1-е число). */

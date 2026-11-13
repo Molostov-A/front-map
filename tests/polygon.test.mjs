@@ -59,3 +59,13 @@ test('сравнение: новое отверстие, несколько ча
   const reversed=structuredClone(a); reversed.coordinates[0].reverse();
   assert.equal(compare([f(a)],[f(reversed)]).features.length,0);
 });
+
+
+test('сравнение: неизменившаяся часть — пересечение, по умолчанию не добавляется',()=>{
+  const f=g=>({id:1,layer_id:1,type:'polygon',geometry:g});
+  const a=f(rect(0,0,4,4)), b=f(rect(2,0,4,4));
+  const fc=compare([a],[b],undefined,{includeUnchanged:true});
+  assert.equal(area(fc.features.find(f=>f.properties.kind==='unchanged').geometry),8);
+  assert.equal(compare([a],[a],undefined,{includeUnchanged:true}).features[0].properties.kind,'unchanged');
+  assert.equal(compare([a],[a]).features.length,0);
+});

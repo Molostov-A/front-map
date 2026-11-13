@@ -16,7 +16,7 @@ export function updateStylePanels() {
   for (const type of FEATURE_TYPES) {
     const el = stylePanelEl(type);
     if (!el) continue;
-    el.classList.toggle('show', state.tool === type || !!activeSelected(type));
+    el.classList.toggle('show', state.tool === type || !!activeSelected(type) || (type === 'polygon' && state.comparisonSettingsOpen));
     renderPanel(el, styleStateOf(type));
   }
   renderArrowExtras();

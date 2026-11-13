@@ -10,12 +10,17 @@ export function createPolygonOps(engine) {
     if (!isPolygon(a) || !isPolygon(b)) throw new Error('Нужны два полигона');
     return polygonGeometry(engine[operation](polygonParts(a), polygonParts(b)));
   }
-  function compare(before, after, visibleLayers) {
+  function compare(before, after, visibleLayers, { includeUnchanged = false } = {}) {
     const index = (features) => new Map(features.filter((f) => f.type === 'polygon' && isPolygon(f.geometry)
       && (!visibleLayers || visibleLayers.has(f.layer_id))).map((f) => [f.id, f]));
     const old = index(before), next = index(after), result = [];
     for (const id of new Set([...old.keys(), ...next.keys()])) {
       const a = old.get(id), b = next.get(id);
+      if (includeUnchanged && a && b) {
+        const geometry = operate('intersection', a.geometry, b.geometry);
+        if (geometry) result.push({ type: 'Feature', geometry,
+          properties: { kind: 'unchanged', featureId: id, layerId: b.layer_id } });
+      }
       for (const kind of ['added', 'removed']) {
         const subject = kind === 'added' ? b : a;
         const clip = kind === 'added' ? a : b;

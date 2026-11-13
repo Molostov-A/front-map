@@ -7,10 +7,12 @@ import { hooks } from '../core/hooks.js';
 import { state } from '../core/store.js';
 import { $ } from '../core/util.js';
 import { clearComparison, comparisonDefaults, recolorComparison, setComparison } from '../map/date-comparison.js';
+import { updateStylePanels } from './style-panels.js';
+import { panels, applyPanelRect, savePanels } from './float-panels.js';
 import { setDay } from './timeline.js';
 
 let generation = 0, busy = false, ready = false;
-const colorKeys = ['addedFill', 'addedLine', 'removedFill', 'removedLine'];
+const colorKeys = ['addedFill', 'addedLine', 'removedFill', 'removedLine', 'unchangedFill', 'unchangedLine'];
 const inputId = (key) => '#compare-' + key;
 const validDay = (day) => /^\d{4}-\d{2}-\d{2}$/.test(day)
   && Number.isFinite(Date.parse(day + 'T00:00:00Z')) && new Date(day + 'T00:00:00Z').toISOString().slice(0, 10) === day;
@@ -30,11 +32,11 @@ export function resetDateComparison() {
   if (wasActive) $('#compare-status').textContent = 'Карта изменилась. Запустите сравнение снова.';
   ready = false;
   const button = $('#compare-run'); if (button) button.disabled = false;
-  for (const id of ['#compare-added-area', '#compare-removed-area']) if ($(id)) $(id).textContent = '—';
+  for (const id of ['#compare-added-area', '#compare-removed-area', '#compare-unchanged-area']) if ($(id)) $(id).textContent = '—';
 }
 export function updateComparisonColors() {
   const colors = comparisonSettings(); recolorComparison(colors);
-  for (const kind of ['added', 'removed']) {
+  for (const kind of ['added', 'removed', 'unchanged']) {
     const swatch = $('#compare-' + kind + '-swatch');
     swatch.style.background = colors[kind + 'Fill']; swatch.style.borderColor = colors[kind + 'Line'];
   }
@@ -66,13 +68,13 @@ export async function runDateComparison() {
     ]);
     if (!active()) return;
     const visible = new Set(state.layers.filter((l) => l.visible).map((l) => l.id));
-    const fc = compare(before.features, after.features, visible);
+    const fc = compare(before.features, after.features, visible, { includeUnchanged: true });
     setComparison(fc, comparisonSettings()); ready = true;
-    for (const kind of ['added', 'removed']) {
+    for (const kind of ['added', 'removed', 'unchanged']) {
       const area = fc.features.filter((f) => f.properties.kind === kind).reduce((sum, f) => sum + polygonAreaKm2(f.geometry), 0);
       $('#compare-' + kind + '-area').textContent = area ? formatArea(area) : '0 км²';
     }
-    $('#compare-status').textContent = fc.features.length
+    $('#compare-status').textContent = fc.features.some((f) => f.properties.kind !== 'unchanged')
       ? `Сравнение ${from} → ${to}. Цветом показаны изменения площади видимых полигонов.`
       : 'Изменений площади видимых полигонов нет.';
   } catch (e) {
@@ -80,6 +82,17 @@ export async function runDateComparison() {
   } finally {
     if (request === generation) { busy = false; $('#compare-run').disabled = false; }
   }
+}
+
+export function openComparisonSettings() {
+  state.comparisonSettingsOpen = true;
+  $('#date-comparison').hidden = true;
+  if (panels) {
+    panels.props.enabled = true; panels.props.collapsed = false;
+    applyPanelRect('props'); savePanels();
+  }
+  updateStylePanels();
+  $('#polygon-comparison-settings').scrollIntoView({ block: 'nearest' });
 }
 
 export function bindDateComparison() {
@@ -94,6 +107,8 @@ export function bindDateComparison() {
     if (!$('#compare-to').value) $('#compare-to').value = currentDay();
   };
   $('#compare-run').onclick = runDateComparison;
+  $('#compare-colors-open').onclick = openComparisonSettings;
+  $('#comparison-settings-close').onclick = () => { state.comparisonSettingsOpen = false; updateStylePanels(); };
   $('#compare-close').onclick = () => { resetDateComparison(); $('#date-comparison').hidden = true; };
   $('#compare-off').onclick = () => { resetDateComparison(); $('#compare-status').textContent = 'Сравнение выключено.'; };
   for (const id of ['#compare-from', '#compare-to']) $(id).addEventListener('change', resetDateComparison);

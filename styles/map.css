@@ -104,3 +104,10 @@
 }
 #date-comparison button:hover, .compare-toggle:hover { background: #354157; }
 #date-comparison button:disabled { opacity: .5; cursor: wait; }
+
+#polygon-comparison-settings { border-top: 1px solid #48536a; padding-top: 8px; margin-top: 12px; }
+.comparison-palette-row { display: flex; align-items: center; gap: 9px; margin: 8px 0; font-size: 12px; }
+.comparison-palette-row strong { flex: 1; }
+.comparison-palette-row label { display: flex; flex-direction: column; font-size: 10px; color: #a8b4c8; gap: 3px; }
+.comparison-palette-row input[type=color] { width: 44px; height: 27px; }
+#compare-colors-open { margin: 12px 0; width: 100%; }

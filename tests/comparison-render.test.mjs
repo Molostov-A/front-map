@@ -17,6 +17,6 @@ test('сравнение: раздельные цвета заливки и гр
   c.recolorComparison({ addedFill:'#123456',addedLine:'#654321',removedFill:'#ff0000',removedLine:'#990000',opacity:0.7 });
   assert.equal(paints['fmO-compare-fillfill-opacity'], 0.7);
   source = null; layerNames = new Set(); paints = {}; c.renderComparison();
-  assert.equal(source.data.features.length,1); assert.equal(layerNames.size,2);
+  assert.equal(source.data.features.length,1); assert.equal(layerNames.size,4);
   c.clearComparison(); assert.equal(source.data.features.length,0);
 });

@@ -22,6 +22,7 @@ export const state = {
   moveMode: false,      // режим перемещения выбранного элемента
   move: null,           // активное перетаскивание: { featureId, start, orig, moved }
   ignoreNextClick: false,
+  comparisonSettingsOpen: false,
   date: null,           // выбранный день YYYY-MM-DD; null = "сейчас"
   dates: null,          // даты выбранного элемента { created_at, deleted_at, changes:[...] }
   calView: null         // отображаемый месяц календаря: Date (1-е число)

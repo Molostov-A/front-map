@@ -5,25 +5,25 @@ import { compare } from '../polygon.mjs';
 import { polygonAreaKm2 } from '../measure.mjs';
 
 const tick = () => new Promise(r => setImmediate(r));
-function setup() {
+function setup(saved = null) {
   let token = 'one', mod; const nodes = new Map(), requests = [], applied = [], colors = [];
-  const defaults = { addedFill:'#34d399', addedLine:'#047857', removedFill:'#fb7185', removedLine:'#be123c', opacity:0.5 };
+  const defaults = { addedFill:'#34d399', addedLine:'#047857', removedFill:'#fb7185', removedLine:'#be123c', unchangedFill:'#94a3b8', unchangedLine:'#475569', opacity:0.5 };
   const node = (id) => {
-    if (!nodes.has(id)) nodes.set(id,{value:'',textContent:'',disabled:false,style:{},addEventListener() {}});
+    if (!nodes.has(id)) nodes.set(id,{value:'',textContent:'',disabled:false,style:{},scrollIntoView() { this.scrolled=true; },addEventListener() {}});
     return nodes.get(id);
   };
   node('#compare-from').value = '2026-11-12'; node('#compare-to').value = '2026-11-13';
   node('#compare-opacity').value = '50';
-  for (const key of ['addedFill','addedLine','removedFill','removedLine']) node('#compare-'+key).value = defaults[key];
-  const state = {date:'2026-11-13',layers:[{id:1,visible:true}]};
+  for (const key of ['addedFill','addedLine','removedFill','removedLine','unchangedFill','unchangedLine']) node('#compare-'+key).value = defaults[key];
+  const state = {tool:'select',date:'2026-11-13',layers:[{id:1,visible:true}]};
   mod = loadModule('../src/ui/date-comparison.js',{
-    $:node,state,compare,polygonAreaKm2,formatArea:n=>String(n),comparisonDefaults:defaults,
+    panels:null,updateStylePanels() {},$:node,state,compare,polygonAreaKm2,formatArea:n=>String(n),comparisonDefaults:defaults,
     getToken:()=>token,currentDay:()=>state.date,shiftDay:()=> '2026-11-12',
     hooks:{flushSaves:async()=>{}},
     setDay:async(day)=>{state.date=day;mod.resetDateComparison();},
     api:{get:()=>{const d=deferred(); requests.push(d);return d.promise;}},
     setComparison:(fc,c)=>applied.push({fc,c}),clearComparison() {},
-    recolorComparison:c=>colors.push(c),localStorage:{setItem() {},getItem:()=>null}
+    recolorComparison:c=>colors.push(c),localStorage:{setItem() {},getItem:()=>saved === null ? null : JSON.stringify(saved)}
   });
   return {...mod,node,state,requests,applied,colors,token:t=>{token=t;}};
 }
@@ -45,6 +45,7 @@ test('даты: ошибка порядка/календаря не вызыва
   x.node('#compare-from').value='2026-11-14'; await x.runDateComparison(); assert.equal(x.requests.length,0);
   x.node('#compare-from').value='2026-11-12'; const p=x.runDateComparison(); await tick();
   for(const d of x.requests) d.resolve({features:[feature]}); await p;
+  assert.equal(x.applied.at(-1).fc.features[0].properties.kind,'unchanged');
   assert.match(x.node('#compare-status').textContent,/нет/); assert.equal(x.node('#compare-removed-area').textContent,'0 км²');
 });
 
@@ -63,4 +64,16 @@ test('даты: сетевой сбой снимает загрузку и со�
   const x=setup(); const p=x.runDateComparison(); await tick();
   x.requests[0].reject(new Error('network')); x.requests[1].resolve({features:[]}); await p;
   assert.match(x.node('#compare-status').textContent,/network/); assert.equal(x.node('#compare-run').disabled,false);
+});
+
+
+test('палитра: сохранённый unchanged-цвет, совместимость старых настроек и открытие в полигоне без смены инструмента',()=>{
+  const old=setup({addedFill:'#123456'});old.bindDateComparison();
+  assert.equal(old.node('#compare-addedFill').value,'#123456');
+  assert.equal(old.node('#compare-unchangedFill').value,'#94a3b8');
+  const x=setup({unchangedFill:'#abcdef'});x.bindDateComparison();
+  assert.equal(x.node('#compare-unchangedFill').value,'#abcdef');
+  x.openComparisonSettings(); assert.equal(x.state.comparisonSettingsOpen,true);
+  assert.equal(x.state.tool,'select'); assert.equal(x.node('#date-comparison').hidden,true);
+  assert.equal(x.node('#polygon-comparison-settings').scrolled,true);
 });
