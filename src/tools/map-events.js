@@ -7,7 +7,7 @@ import { applyCoord } from '../edit/geometry.js';
 import { beginMove, setMoveMode } from '../edit/move-mode.js';
 import { select } from '../edit/selection.js';
 import { deleteSelected, putArrowGeometry } from '../edit/sync.js';
-import { refreshSources } from '../map/render.js';
+import { refreshSources, scheduleRefreshSources } from '../map/render.js';
 import { updateHint } from '../ui/hint.js';
 import { renderLayerList } from '../ui/layer-list.js';
 import { closeDelete, closeModal, deleteOpen, modalOpen } from '../ui/modals.js';
@@ -58,14 +58,13 @@ export function bindMapEvents() {
       if (feat) {
         applyCoord(feat, g, [e.lngLat.lng, e.lngLat.lat]);
         g.moved = true;
-        refreshSources();
-        updateMeasurePanels();
+        scheduleRefreshSources(updateMeasurePanels);
       }
       return;
     }
     if (state.draft) {
       state.draft.cursor = [e.lngLat.lng, e.lngLat.lat];
-      refreshSources();
+      scheduleRefreshSources();
       return;
     }
     if (state.tool === 'select') selectTool.onHover(e);

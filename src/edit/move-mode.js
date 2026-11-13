@@ -4,7 +4,7 @@ import { map, state } from '../core/store.js';
 import { translateGeom } from './geometry.js';
 import { putArrowGeometry } from './sync.js';
 import { canvasLngLat } from '../map/markers.js';
-import { refreshSources } from '../map/render.js';
+import { scheduleRefreshSources } from '../map/render.js';
 import { updateHint } from '../ui/hint.js';
 import { updateStylePanels, updateMeasurePanels } from '../ui/style-panels.js';
 
@@ -31,8 +31,7 @@ export function onDocMove(ev) {
   const ll = canvasLngLat(ev.clientX, ev.clientY);
   translateGeom(f.geometry, m.orig, ll[0] - m.start[0], ll[1] - m.start[1]);
   m.moved = true;
-  refreshSources();
-  updateMeasurePanels();
+  scheduleRefreshSources(updateMeasurePanels);
 }
 
 export function onDocUp() {

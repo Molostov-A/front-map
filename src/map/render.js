@@ -1,5 +1,6 @@
 // Перерисовка: объекты → GeoJSON по слоям, выделение, ручки, скелет/касательные, черновик (refreshSources).
 import { arrowOutline, arrowPolygonLngLat } from '../../arrow.mjs';
+import { createFrameScheduler } from '../core/frame.js';
 import { canEdit } from '../core/session.js';
 import { map, state } from '../core/store.js';
 import { TOOLS } from '../core/tools-registry.js';
@@ -78,7 +79,18 @@ export function draftFC() {
   return { type: 'FeatureCollection', features: tool && tool.draft ? tool.draft(d) : [] };
 }
 
+const scheduledRefresh = createFrameScheduler((afterRefresh) => {
+  refreshSources();
+  if (afterRefresh) afterRefresh();
+});
+
+/** Обновление движения мыши, не чаще одного раза на кадр. */
+export function scheduleRefreshSources(afterRefresh = null) {
+  scheduledRefresh.schedule(afterRefresh);
+}
+
 export function refreshSources() {
+  scheduledRefresh.cancel();
   ensureOverlayImages();
 
   const byLayer = new Map(state.layers.map((L) => [L.id, []]));
