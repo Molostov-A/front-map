@@ -8,6 +8,7 @@ export const state = {
   activeLayerId: null,
   tool: 'select',
   selectedId: null,
+  selectedIds: [],
   draft: null,          // {type:'line'|'polygon', coords, cursor} | {type:'arrow', nodes:[...], cursor}
   drag: null,           // {featureId, index, ring, moved} | {featureId, type:'tangent', index, which}
   appendArrow: false,   // режим «дорисовать» для выбранной стрелки

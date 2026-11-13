@@ -85,7 +85,7 @@ export interface AppState {
   activeLayerId: number | null;
   tool: string;
   selectedId: number | null;
-  selectedIds?: number[];
+  selectedIds: number[];
   draft: Draft | null;
   drag: Drag | null;
   /** Режим «Дорисовать» для выбранной стрелки. */

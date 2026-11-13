@@ -3,8 +3,8 @@
 // Так нет циклических импортов. Новый хук — поле здесь + присваивание в main.js.
 export const hooks = {
   /** select(id) — выбрать объект (edit/selection), вызывается из DOM-маркеров. */
-  /** @type {(id: number | null) => void} */
-  select: (id) => {},
+  /** @type {(id: number | null, additive?: boolean) => void} */
+  select: (id, additive) => {},
   /** @type {(id: number, shift?: boolean) => void} */
   featureClick: (id, shift) => {},
   /** beginMove(lngLat) — начать перемещение (edit/move-mode), из DOM-маркеров. */

@@ -22,8 +22,7 @@ export function setTool(t) {
   if (map) {
     map.doubleClickZoom.disable(); // мешает завершению фигуры
     // при рисовании Shift+клик добавляет узлы, поэтому box zoom отключаем
-    if (t === 'select') map.boxZoom.enable();
-    else map.boxZoom.disable();
+    map.boxZoom.disable(); // Shift+клик используется и множественным выделением.
   }
   refreshSources();
   updateHint();

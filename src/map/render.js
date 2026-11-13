@@ -106,10 +106,10 @@ export function refreshSources() {
   }
 
   const sel = state.features.find((f) => f.id === state.selectedId);
-  const showGeomSel = sel && sel.geometry && sel.type !== 'label';
-  map.getSource('fmO-sel').setData(showGeomSel
-    ? { type: 'FeatureCollection', features: [toGeoJSON(sel)] } : emptyFC());
-  map.getSource('fmO-handles').setData(sel && sel.type !== 'label' && canEdit()
+  const selected = state.features.filter((f) => (state.selectedIds || [state.selectedId]).includes(f.id)
+    && f.geometry && f.type !== 'label');
+  map.getSource('fmO-sel').setData({ type: 'FeatureCollection', features: selected.map(toGeoJSON) });
+  map.getSource('fmO-handles').setData(sel && selected.length <= 1 && sel.type !== 'label' && canEdit()
     ? { type: 'FeatureCollection', features: handlesFor(sel).map((h) => ({
         type: 'Feature', geometry: { type: 'Point', coordinates: h.c },
         properties: { index: h.i, ring: h.ring, polygon: h.polygon || 0 }

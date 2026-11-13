@@ -49,7 +49,7 @@ function bindToolbar() {
 
 // Хуки для вызовов «снизу вверх» по слоям (см. src/core/hooks.js).
 hooks.select = select;
-hooks.featureClick = (id, shift) => state.tool === 'eyedropper' ? pickAppearance(id, shift) : select(id);
+hooks.featureClick = (id, shift) => state.tool === 'eyedropper' ? pickAppearance(id, shift) : select(id, shift);
 hooks.beginMove = beginMove;
 hooks.reload = reload;
 hooks.flushSaves = () => flushFeaturePuts(state.features.map((f) => f.id));

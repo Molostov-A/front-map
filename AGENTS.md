@@ -64,7 +64,7 @@ npm run build       # dist/: бандл, config, styles с хешами в им�
 
 ## Грабли
 
-- **Shift подавляет `click` в MapLibre** (Shift+drag = boxZoom): `setTool` выключает boxZoom для рисования,
+- **Shift подавляет `click` в MapLibre** (Shift+drag = boxZoom): `setTool` выключает boxZoom для рисования и множественного выбора,
   Shift читается из `e.originalEvent.shiftKey`.
 - **`line-dasharray` — data-constant**: на каждый тип штриха свой слой (`fmL-line-<id>-<dash>`, `fmL-outline-<id>-<dash>`).
 - Слои `fmL-*` общие для всех типов, порядок важен (заливки под линиями); стрелка заливается слоем `fmL-fill-*`.
@@ -141,3 +141,17 @@ DOM-маркеры используют Marker.setOpacity (прямой style.op
 день, сессию и выбранные id при открытии окна; ожидает hooks.flushSaves.
 Окна копирования/операций немодальные, переносятся за .compare-head;
 float-panels.bindDialogDrag ограничивает их границами карты. Высота fpanel учитывает top.
+
+
+Множественный выбор: state.selectedIds, state.selectedId — последний активный объект
+для свойств/дат. edit/selection.select(id, additive=false) заменяет выделение либо
+переключает id; null сбрасывает всё. selectTool принимает Shift/Ctrl/Meta, выбирает
+ещё не выбранный hit при перекрытии фигур. fmO-sel показывает все выбранные контуры,
+ручки вершин скрыты при множественном выборе. hooks.select допускает additive.
+
+polygon-pairs.mjs строит все пары с ненулевой общей площадью среди выбранных
+видимых полигонов. ui/polygon-operations.js открывает #polygon-operations при 2+
+полигонах, хранит настройки по ключу A:B и переключает пары стрелками. Старого
+#polygon-other больше нет: A/B берутся из выделения. Применение — текущая пара,
+только после актуального preview; после записи выделение выживших исходников и
+результата восстанавливается, пары пересчитываются. Касание границ не даёт пары.

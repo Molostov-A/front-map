@@ -1,4 +1,5 @@
 // Выбор объекта и применение стиля из панели к выбранному объекту.
+import { nextSelection } from '../../polygon-pairs.mjs';
 import { normalizeStyle } from '../../shared/feature-schema.mjs';
 import { activeSelected, map, state, STYLE_KEY, styleStateOf } from '../core/store.js';
 import { setMoveMode } from './move-mode.js';
@@ -7,7 +8,9 @@ import { refreshSources } from '../map/render.js';
 import { refreshDates } from '../ui/dates-panel.js';
 import { updateStylePanels } from '../ui/style-panels.js';
 
-export function select(id) {
+export function select(id, additive = false) {
+  state.selectedIds = nextSelection(state.selectedIds || (state.selectedId ? [state.selectedId] : []), id, additive);
+  id = state.selectedIds.includes(id) ? id : state.selectedIds.at(-1) ?? null;
   if (state.moveMode && id !== state.selectedId) setMoveMode(false);
   state.selectedId = id;
   state.appendArrow = false;

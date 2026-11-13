@@ -19,7 +19,7 @@ const hitFeatures = (point) => {
 
 /** @type {import('../types').Tool} */
 export const selectTool = {
-  hint: () => 'Клик — выбрать элемент · тяните синие точки · Del — удалить',
+  hint: () => 'Клик — выбрать · Shift/Ctrl+клик — несколько полигонов · тяните синие точки · Del — удалить',
 
   onClick(e) {
     if (state.appendArrow) {
@@ -40,7 +40,10 @@ export const selectTool = {
     const handles = map.queryRenderedFeatures(e.point, { layers: ['fmO-handles'] });
     if (handles.length) return;
     const hits = hitFeatures(e.point);
-    select(hits.length ? Number(hits[0].properties.id) : null);
+    const additive = !!(e.originalEvent?.shiftKey || e.originalEvent?.ctrlKey || e.originalEvent?.metaKey);
+    const ids = [...new Set(hits.map((hit) => Number(hit.properties.id)))];
+    const unselected = additive ? ids.find((id) => !(state.selectedIds || []).includes(id)) : null;
+    select(unselected ?? ids[0] ?? null, additive);
   },
 
   onDblClick(e) {

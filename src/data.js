@@ -51,6 +51,9 @@ export async function reload() {
     state.selectedId = null;
     state.dates = null;
   }
+  state.selectedIds = (state.selectedIds || []).filter((id) => state.features.some((f) => f.id === id
+    && state.layers.some((l) => l.id === f.layer_id && l.visible)));
+  if (!state.selectedIds.includes(state.selectedId)) state.selectedId = state.selectedIds.at(-1) ?? null;
   rebuildStyle();
   renderLayerList();
   updateStylePanels();
