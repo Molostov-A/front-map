@@ -8,18 +8,35 @@ import { updateDatesPanel } from './ui/dates-panel.js';
 import { renderLayerList } from './ui/layer-list.js';
 import { updateStylePanels } from './ui/style-panels.js';
 
+let loadGeneration = 0;
+let creatingLayer = null;
+
 export async function reload() {
-  const q = `?date=${encodeURIComponent(currentDay())}`;
-  const data = await api.get('/api/map' + q);
+  const generation = ++loadGeneration;
+  const day = currentDay();
+  const active = () => generation === loadGeneration && day === currentDay();
+  const q = `?date=${encodeURIComponent(day)}`;
+  let data;
+  try {
+    data = await api.get('/api/map' + q);
+    if (!active()) return;
+    if (!data.layers.length && canEdit()) {
+      // Параллельные reload не должны создать несколько стартовых слоёв.
+      if (!creatingLayer) {
+        creatingLayer = api.send('POST', '/api/layers', { name: 'Слой 1', color: '#e63946' })
+          .finally(() => { creatingLayer = null; });
+      }
+      await creatingLayer;
+      if (!active()) return;
+      data = await api.get('/api/map' + q);
+      if (!active()) return;
+    }
+  } catch (e) {
+    if (active()) throw e;
+    return;
+  }
   state.layers = data.layers;
   state.features = data.features;
-
-  if (!state.layers.length && canEdit()) {
-    await api.send('POST', '/api/layers', { name: 'Слой 1', color: '#e63946' });
-    const again = await api.get('/api/map' + q);
-    state.layers = again.layers;
-    state.features = again.features;
-  }
   if (!canEdit()) {
     for (const L of state.layers) if (viewerVisibility.has(L.id)) L.visible = viewerVisibility.get(L.id);
   }
