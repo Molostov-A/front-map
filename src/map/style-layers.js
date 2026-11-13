@@ -1,6 +1,7 @@
 // Слои объектов MapLibre (fmL-*): источник и набор слоёв на каждый слой карты; fmLIds для hit-test.
 import { map, state } from '../core/store.js';
 import { addOverlayLayers, bringOverlaysToFront, emptyFC, OVERLAY_DRAFT_FILL } from './overlays.js';
+import { renderComparison } from './date-comparison.js';
 import { renderPolygonPreview } from './polygon-preview.js';
 import { refreshSources } from './render.js';
 
@@ -116,6 +117,7 @@ export function rebuildStyle() {
 
   addOverlayLayers();
   renderPolygonPreview();
+  renderComparison();
   bringOverlaysToFront();
   refreshSources();
 }
