@@ -6,6 +6,8 @@ import { $ } from '../core/util.js';
 export let loginResolve = null;
 
 export function showLogin() {
+  setCurrentUser(null);
+  updateUserBox();
   const back = $('#login-back');
   if (back) back.classList.add('show');
 }
@@ -32,8 +34,14 @@ export function initLoginForm() {
       setToken(r.token);
       setCurrentUser(r.user);
       $('#login-pass').value = '';
-      hideLogin();
-      if (loginResolve) { const f = loginResolve; loginResolve = null; f(r.user); }
+      if (loginResolve) {
+        hideLogin();
+        const f = loginResolve; loginResolve = null; f(r.user);
+      } else {
+        // Новая сессия получает чистое состояние карты, инструментов и роли.
+        // Не повторяем автоматически действие, которое получило 401.
+        window.location.reload();
+      }
     } catch (err) {
       if (errEl) errEl.textContent = 'Неверный логин или пароль';
     } finally {
@@ -42,7 +50,6 @@ export function initLoginForm() {
   });
 }
 
-// Гарантирует авторизацию: возвращает пользователя, показав форму входа при необходимости.
 // Гарантирует авторизацию: возвращает пользователя, показав форму входа при необходимости.
 export async function ensureAuth() {
   if (getToken()) {

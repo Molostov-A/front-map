@@ -1,5 +1,5 @@
 // Запись правок на сервер: дебаунс PUT свойств по объекту, PUT геометрии, удаление.
-import { api } from '../core/api.js';
+import { api, getToken } from '../core/api.js';
 import { currentDay } from '../core/days.js';
 import { hooks } from '../core/hooks.js';
 import { canEdit } from '../core/session.js';
@@ -16,11 +16,12 @@ const revisions = new Map();
 const nextRevision = (id) => { const n = (revisions.get(id) || 0) + 1; revisions.set(id, n); return n; };
 const putKey = (id, day) => `${id}:${day}`;
 
-function queuePut(f, body, revision) {
+function queuePut(f, body, revision, token) {
   const previous = inFlight.get(f.id) || Promise.resolve();
   const task = previous.catch(() => {}).then(async () => {
+    if (!token || token !== getToken() || !canEdit()) return;
     const upd = await api.send('PUT', `/api/features/${f.id}`, body);
-    if (revisions.get(f.id) !== revision || currentDay() !== body.date) return;
+    if (token !== getToken() || revisions.get(f.id) !== revision || currentDay() !== body.date) return;
     const i = state.features.findIndex((x) => x.id === f.id);
     // reload мог заменить объект даже на том же дне: не трогаем новый снимок карты.
     if (i < 0 || state.features[i] !== f) return;
@@ -41,7 +42,7 @@ export function scheduleArrowPut(f) {
   const key = putKey(f.id, day);
   const prev = pendingPuts.get(key);
   if (prev) clearTimeout(prev.timer);
-  const entry = { f, props: structuredClone(f.properties), date: day, revision: nextRevision(f.id), timer: null };
+  const entry = { f, props: structuredClone(f.properties), date: day, revision: nextRevision(f.id), token: getToken(), timer: null };
   entry.timer = setTimeout(() => sendPendingPut(f.id, day), 300);
   pendingPuts.set(key, entry);
 }
@@ -53,7 +54,7 @@ export async function sendPendingPut(id, day = currentDay()) {
   clearTimeout(p.timer);
   pendingPuts.delete(key);
   try {
-    await queuePut(p.f, { properties: p.props, date: p.date }, p.revision);
+    await queuePut(p.f, { properties: p.props, date: p.date }, p.revision, p.token);
   } catch (e) { toast('Ошибка: ' + e.message); }
 }
 
@@ -70,7 +71,7 @@ export async function saveFeature(f, patch, day = currentDay()) {
   if (!canEdit()) return;
   cancelArrowPut(f.id, day);
   const body = structuredClone({ properties: f.properties, ...patch, date: day });
-  try { await queuePut(f, body, nextRevision(f.id)); }
+  try { await queuePut(f, body, nextRevision(f.id), getToken()); }
   catch (e) { toast('Ошибка: ' + e.message); }
 }
 
@@ -78,20 +79,23 @@ export async function deleteSelected() {
   if (!canEdit()) return;
   if (!state.selectedId) { toast('Ничего не выбрано'); return; }
   const id = state.selectedId;
+  const token = getToken();
   const day = currentDay();
   const mode = await askDelete();
-  if (!mode) return;
+  if (!mode || token !== getToken() || !canEdit()) return;
   // Сначала сохраняем все правки объекта: отмена/ошибка удаления не теряет стиль.
   for (const p of [...pendingPuts.values()]) {
     if (p.f.id === id) await sendPendingPut(id, p.date);
   }
   await (inFlight.get(id) || Promise.resolve()).catch(() => {});
+  if (token !== getToken() || !canEdit()) return;
   try {
     if (mode === 'from') {
       await api.send('DELETE', `/api/features/${id}?mode=from&date=${encodeURIComponent(day)}`);
     } else {
       await api.send('DELETE', `/api/features/${id}`);
     }
+    if (token !== getToken()) return;
     state.selectedId = null;
     state.dates = null;
     await hooks.reload();

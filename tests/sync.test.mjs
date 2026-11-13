@@ -4,20 +4,20 @@ import { loadModule, deferred } from './module-harness.mjs';
 
 const tick = () => new Promise((r) => setImmediate(r));
 function setup(askDelete = async () => null) {
-  let day = '2026-11-13';
+  let day = '2026-11-13', token = 'session-1';
   const f = { id: 1, properties: { color: 'initial', label: { size: 12 } }, geometry: { type: 'Point', coordinates: [1, 2] } };
   const state = { features: [f], selectedId: 1 };
   const calls = [], timers = new Map(), errors = [];
   let timer = 0;
   const mod = loadModule('../src/edit/sync.js', {
-    state, currentDay: () => day, canEdit: () => true, structuredClone,
+    state, getToken: () => token, currentDay: () => day, canEdit: () => true, structuredClone,
     api: { send: (method, url, body) => { const d = deferred(); calls.push({ method, url, body, ...d }); return d.promise; } },
     setTimeout: (fn) => { timers.set(++timer, fn); return timer; },
     clearTimeout: (id) => timers.delete(id), toast: (s) => errors.push(s),
     refreshSources() {}, refreshDates() {}, updateDatesPanel() {},
     hooks: { reload: async () => {} }, askDelete
   });
-  return { ...mod, f, state, calls, timers, errors, setDay: (d) => { day = d; } };
+  return { ...mod, f, state, calls, timers, errors, setToken: (t) => { token = t; }, setDay: (d) => { day = d; } };
 }
 
 test('PUT одного объекта последовательны; старый ответ не откатывает новую правку', async () => {
@@ -110,4 +110,21 @@ test('подтверждённое удаление ждёт PUT; ошибка D
     assert.equal(x.state.selectedId, fail ? 1 : null);
     assert.equal(x.pendingPuts.size, 0);
   }
+});
+
+
+test('смена сессии запрещает применение ответа и отправку старых очередей', async () => {
+  const x = setup(); const first = x.putArrowGeometry(x.f); await tick();
+  const second = x.putArrowGeometry(x.f);
+  x.scheduleArrowPut({ ...x.f, id: 2 });
+  x.setToken('session-2');
+  x.calls[0].resolve({ id: 1, properties: { color: 'old-session' } });
+  await first; await second; await x.sendPendingPut(2);
+  assert.equal(x.calls.length, 1); assert.equal(x.state.features[0].properties.color, 'initial');
+});
+
+test('смена сессии при открытом диалоге отменяет DELETE', async () => {
+  const dialog = deferred(); const x = setup(() => dialog.promise);
+  const p = x.deleteSelected(); x.setToken('session-2'); dialog.resolve('all'); await p;
+  assert.equal(x.calls.length, 0);
 });
