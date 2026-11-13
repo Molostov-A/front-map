@@ -10,6 +10,7 @@
 // «Выбор» — tools/select.js (onClick / onDblClick / onHover). Общая механика — tools/map-events.js.
 import { state } from '../core/store.js';
 import { registerTools } from '../core/tools-registry.js';
+import { eyedropperTool } from './eyedropper.js';
 import { arrowTool } from './arrow.js';
 import { commitDraft } from './draw.js';
 import { labelTool } from './label.js';
@@ -28,7 +29,7 @@ export const DRAW_TOOLS = {
   ruler: rulerTool
 };
 
-registerTools({ ...DRAW_TOOLS, select: selectTool });
+registerTools({ ...DRAW_TOOLS, select: selectTool, eyedropper: eyedropperTool });
 
 /** Завершить текущий черновик: геометрия от инструмента → создание объекта. */
 export function finishDraft() {

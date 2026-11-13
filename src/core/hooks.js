@@ -5,6 +5,8 @@ export const hooks = {
   /** select(id) — выбрать объект (edit/selection), вызывается из DOM-маркеров. */
   /** @type {(id: number | null) => void} */
   select: (id) => {},
+  /** @type {(id: number, shift?: boolean) => void} */
+  featureClick: (id, shift) => {},
   /** beginMove(lngLat) — начать перемещение (edit/move-mode), из DOM-маркеров. */
   /** @type {(lngLat: number[]) => void} */
   beginMove: (lngLat) => {},

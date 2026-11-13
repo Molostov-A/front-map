@@ -27,6 +27,7 @@ import { updateHint } from './src/ui/hint.js';
 import { addLayer } from './src/ui/layer-list.js';
 import { bindModals } from './src/ui/modals.js';
 import { bindStylePanels } from './src/ui/style-bindings.js';
+import { pickAppearance } from './src/tools/eyedropper.js';
 import { bindTimeline, renderTimeline } from './src/ui/timeline.js';
 
 window.addEventListener('error', (e) => diag(e.message + ' @' + e.filename + ':' + e.lineno));
@@ -38,12 +39,16 @@ function bindToolbar() {
     b.onclick = () => setTool(b.dataset.tool);
   });
   $('#btn-delete').onclick = deleteSelected;
-  $('#btn-clear').onclick = () => { if (!cancelDraft()) select(null); };
+  $('#btn-clear').onclick = () => {
+    if (state.tool === 'eyedropper') { setTool('eyedropper'); return; }
+    if (!cancelDraft()) select(null);
+  };
   $('#add-layer').onclick = addLayer;
 }
 
 // Хуки для вызовов «снизу вверх» по слоям (см. src/core/hooks.js).
 hooks.select = select;
+hooks.featureClick = (id, shift) => state.tool === 'eyedropper' ? pickAppearance(id, shift) : select(id);
 hooks.beginMove = beginMove;
 hooks.reload = reload;
 hooks.flushSaves = () => flushFeaturePuts(state.features.map((f) => f.id));

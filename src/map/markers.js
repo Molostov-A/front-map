@@ -64,7 +64,7 @@ export function syncMarkers() {
     if (!entry) {
       const el = document.createElement('div');
       el.className = 'fm-text-marker';
-      el.addEventListener('click', (ev) => { ev.stopPropagation(); hooks.select(f.id); });
+      el.addEventListener('click', (ev) => { ev.stopPropagation(); hooks.featureClick(f.id, !!ev.shiftKey); });
       el.addEventListener('mousedown', (ev) => {
         if (state.moveMode && state.selectedId === f.id && state.tool === 'select') {
           ev.preventDefault();
@@ -79,11 +79,11 @@ export function syncMarkers() {
       state.markers.set(f.id, entry);
     }
     entry.el.textContent = text;
-    const pe = (state.tool === 'select') ? 'auto' : 'none';
+    const pe = (state.tool === 'select' || state.tool === 'eyedropper') ? 'auto' : 'none';
     entry.el.style.pointerEvents = pe;
     entry.marker.getElement().style.pointerEvents = pe;
     entry.el.classList.toggle('selected', f.id === state.selectedId);
-    entry.el.style.cursor = (state.moveMode && state.selectedId === f.id) ? 'grab' : 'pointer';
+    entry.el.style.cursor = (state.moveMode && state.selectedId === f.id) ? 'grab' : state.tool === 'eyedropper' ? 'copy' : 'pointer';
     applyTextStyle(entry.el, ls);
     entry.marker.setLngLat(f.geometry.coordinates);
   }

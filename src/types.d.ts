@@ -53,6 +53,8 @@ export interface ToolClick {
 
 /** Инструмент (src/tools/<type>.js). */
 export interface Tool {
+  onEnter?: () => void;
+  onLeave?: () => void;
   /** Текст подсказки для текущего черновика. */
   hint?: (draft: Draft | null) => string;
   /** Клик по карте; true — черновик пора завершить. «Выбор» получает событие MapLibre. */

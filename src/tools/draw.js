@@ -2,6 +2,7 @@
 // Логика конкретных инструментов — tools/<type>.js, реестр и finishDraft — tools/index.js.
 import { api } from '../core/api.js';
 import { currentDay } from '../core/days.js';
+import { TOOLS } from '../core/tools-registry.js';
 import { canEdit } from '../core/session.js';
 import { map, state, styleStateOf } from '../core/store.js';
 import { $$, toast } from '../core/util.js';
@@ -13,7 +14,9 @@ import { updateStylePanels } from '../ui/style-panels.js';
 
 export function setTool(t) {
   if (!canEdit()) t = 'select';
+  TOOLS[state.tool]?.onLeave?.();
   state.tool = t;
+  TOOLS[t]?.onEnter?.();
   if (t !== 'select') state.appendArrow = false;
   $$('#toolbar [data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === t));
   if (map) {

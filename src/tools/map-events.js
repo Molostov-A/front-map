@@ -14,8 +14,9 @@ import { renderLayerList } from '../ui/layer-list.js';
 import { closeDelete, closeModal, deleteOpen, modalOpen } from '../ui/modals.js';
 import { updateStylePanels, updateMeasurePanels } from '../ui/style-panels.js';
 import { closeCalendar } from '../ui/timeline.js';
-import { cancelDraft, ensureCanDraw } from './draw.js';
+import { cancelDraft, ensureCanDraw, setTool } from './draw.js';
 import { DRAW_TOOLS, finishDraft } from './index.js';
+import { eyedropperTool } from './eyedropper.js';
 import { selectTool } from './select.js';
 
 // События карты: рисование, выбор, перетаскивание узлов, курсор.
@@ -24,6 +25,7 @@ export function bindMapEvents() {
     if (state.ignoreNextClick) { state.ignoreNextClick = false; return; }
     if (state.moveMode) return;
     if (state.tool === 'select') { selectTool.onClick(e); return; }
+    if (state.tool === 'eyedropper') { eyedropperTool.onClick(e); return; }
 
     if (!ensureCanDraw()) return;
     const tool = DRAW_TOOLS[state.tool];
@@ -69,6 +71,7 @@ export function bindMapEvents() {
       return;
     }
     if (state.tool === 'select') selectTool.onHover(e);
+    else if (state.tool === 'eyedropper') eyedropperTool.onHover(e);
     else map.getCanvas().style.cursor = 'crosshair';
   });
 
@@ -140,6 +143,7 @@ export function bindKeyboard() {
       return;
     }
     if (e.key === 'Escape') {
+      if (state.tool === 'eyedropper') { setTool('select'); return; }
       if (!$('#calendar').classList.contains('hidden')) { closeCalendar(); return; }
       if (state.moveMode) { setMoveMode(false); return; }
       if (state.appendArrow) {
