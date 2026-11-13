@@ -60,14 +60,15 @@ export function handlesFor(feat) {
       });
     });
   }
-  else if (g.type === 'Polygon') {
-    g.coordinates.forEach((ring, ri) => {
+  else if (g.type === 'Polygon' || g.type === 'MultiPolygon') {
+    const parts = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+    parts.forEach((part, polygon) => part.forEach((ring, ri) => {
       const last = ring.length - 1;
       ring.forEach((c, i) => {
         if (i === last && c[0] === ring[0][0] && c[1] === ring[0][1]) return;
-        out.push({ c, ring: ri, i });
+        out.push({ c, ring: ri, polygon, i });
       });
-    });
+    }));
   }
   return out;
 }
@@ -111,7 +112,7 @@ export function refreshSources() {
   map.getSource('fmO-handles').setData(sel && sel.type !== 'label' && canEdit()
     ? { type: 'FeatureCollection', features: handlesFor(sel).map((h) => ({
         type: 'Feature', geometry: { type: 'Point', coordinates: h.c },
-        properties: { index: h.i, ring: h.ring }
+        properties: { index: h.i, ring: h.ring, polygon: h.polygon || 0 }
       })) }
     : emptyFC());
 

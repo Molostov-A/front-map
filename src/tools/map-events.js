@@ -97,7 +97,7 @@ export function bindMapEvents() {
       }
       return;
     }
-    state.drag = { featureId: state.selectedId, index: idx, ring: Number(hit.properties.ring), moved: false };
+    state.drag = { featureId: state.selectedId, index: idx, ring: Number(hit.properties.ring), polygon: Number(hit.properties.polygon || 0), moved: false };
     map.getCanvas().style.cursor = 'grabbing';
   });
   map.on('mousedown', 'fmO-tangents', (e) => {

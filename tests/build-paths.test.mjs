@@ -16,6 +16,6 @@ test('бандл открывается из /front-map/: все vendor-импо
   for (const entry of imports) {
     assert.equal(entry.external, true);
     assert.equal(new URL(entry.path, 'https://example.test/front-map/main.js').pathname,
-      '/front-map/vendor/maplibre-gl.mjs', entry.path);
+      '/front-map/vendor/' + path.basename(entry.path), entry.path);
   }
 });

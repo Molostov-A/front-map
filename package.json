@@ -6,6 +6,7 @@
   "description": "front-map client (MapLibre GL, vanilla JS). Deployed statically (GitHub Pages).",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "vendor:polygons": "node scripts/build-polygon-vendor.mjs",
     "test": "node --test",
     "lint": "eslint .",
     "typecheck": "tsc -p ."
@@ -14,6 +15,7 @@
     "esbuild": "0.24.2",
     "eslint": "9.17.0",
     "globals": "15.14.0",
+    "polygon-clipping": "0.15.7",
     "typescript": "5.7.2"
   }
 }

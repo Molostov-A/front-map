@@ -35,8 +35,9 @@ export function applyCoord(feat, g, c) {
       geo.coordinates[1][0] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
     }
   }
-  else if (geo.type === 'Polygon') {
-    const ring = geo.coordinates[g.ring];
+  else if (geo.type === 'Polygon' || geo.type === 'MultiPolygon') {
+    const part = geo.type === 'Polygon' ? geo.coordinates : geo.coordinates[g.polygon || 0];
+    const ring = part[g.ring];
     ring[g.index] = c;
     if (g.index === 0) ring[ring.length - 1] = c;
   }

@@ -41,7 +41,7 @@ export interface Draft {
 
 /** Перетаскивание вершины или касательной выбранного объекта. */
 export type Drag =
-  | { featureId: number; index: number; ring: number; moved: boolean; type?: undefined }
+  | { featureId: number; index: number; ring: number; polygon?: number; moved: boolean; type?: undefined }
   | { featureId: number; type: 'tangent'; index: number; which: 'in' | 'out'; moved: boolean };
 
 /** Контекст клика для инструмента рисования. */

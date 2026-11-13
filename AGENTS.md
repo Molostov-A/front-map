@@ -100,3 +100,9 @@ E2E — `../backend/scripts/e2e.js`. Новая логика → юнит-тес
 `tests/build-paths.test.mjs` проверяет импорты при размещении в `/front-map/`.
 Ручная проверка сборки в браузере: Node 20 → `../tools/browser-preview.mjs`
 (из корня: `node tools/browser-preview.mjs`); временная БД, свободный порт.
+
+Полигональные операции: `polygon.mjs` + `shared/polygon-ops.mjs`; движок
+polygon-clipping 0.15.7 собран в `vendor/polygon-clipping.mjs` командой
+`npm run vendor:polygons` (лицензии рядом). Polygon и MultiPolygon — один тип
+объекта polygon. Ручка хранит polygon/ring/index; редактирование первого узла
+обновляет замыкающий. После shared-правок запускать sync-shared.
