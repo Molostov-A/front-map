@@ -2,17 +2,12 @@
 // двойной клик — вставить узел в стрелку / изменить текст надписи, курсор при наведении.
 import { arrowNearestSegment } from '../../arrow.mjs';
 import { normalizeStyle } from '../../shared/feature-schema.mjs';
-import { api } from '../core/api.js';
-import { currentDay } from '../core/days.js';
 import { canEdit } from '../core/session.js';
 import { map, selectedArrow, state } from '../core/store.js';
-import { toast } from '../core/util.js';
 import { select } from '../edit/selection.js';
-import { cancelArrowPut, putArrowGeometry } from '../edit/sync.js';
+import { saveFeature, putArrowGeometry } from '../edit/sync.js';
 import { metersPerPixel } from '../map/overlays.js';
-import { refreshSources } from '../map/render.js';
 import { fmLIds } from '../map/style-layers.js';
-import { refreshDates } from '../ui/dates-panel.js';
 import { promptModal } from '../ui/modals.js';
 import { updateStylePanels } from '../ui/style-panels.js';
 import { ensureCanDraw } from './draw.js';
@@ -73,19 +68,10 @@ export const selectTool = {
     if (!f || f.type !== 'label' || !canEdit()) return;
     promptModal({ title: 'Текст надписи', name: f.properties.text || '', showColor: false }).then(async (r) => {
       if (!r) return;
-      cancelArrowPut(f.id);
-      try {
-        const upd = await api.send('PUT', `/api/features/${f.id}`, {
-          properties: { ...f.properties, text: r.name.trim() },
-          date: currentDay()
-        });
-        const i = state.features.findIndex((x) => x.id === upd.id);
-        if (i >= 0) state.features[i] = upd;
-        if (upd.id === state.selectedId) state.labelStyle = normalizeStyle('label', upd.properties);
-        refreshSources();
-        updateStylePanels();
-        refreshDates();
-      } catch (err) { toast('Ошибка: ' + err.message); }
+      f.properties = { ...f.properties, text: r.name.trim() };
+      await saveFeature(f, { properties: f.properties });
+      if (f.id === state.selectedId) state.labelStyle = normalizeStyle('label', f.properties);
+      updateStylePanels();
     });
   },
 

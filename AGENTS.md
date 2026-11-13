@@ -39,7 +39,7 @@ npm run build       # dist/: бандл, config, styles с хешами в им�
 | `ui/style-panels.js`, `ui/style-bindings.js` | `updateStylePanels()` (+ длина/площадь, кнопки стрелки); `bindStylePanels()` |
 | `ui/{layer-list,timeline,dates-panel,float-panels,modals,auth,hint}.js` | список слоёв; таймлайн/календарь; даты объекта; плавающие панели; модалки; вход/пользователи; подсказка |
 | `edit/selection.js` | `select(id)`, `syncStyle(type)` — стиль панели → выбранный объект |
-| `edit/sync.js` | PUT: дебаунс 300 мс по id (устаревший ответ не затирает правку), `putArrowGeometry`, `deleteSelected` |
+| `edit/sync.js` | PUT: дебаунс 300 мс по id+дню, последовательная очередь по id, `saveFeature` для текста/геометрии, `deleteSelected` |
 | `edit/move-mode.js`, `edit/geometry.js` | режим «Переместить»; `applyCoord`/`translateGeom` |
 | `tools/<type>.js` | инструмент целиком (см. ниже); `tools/select.js` — «Выбор» (onClick / onDblClick / onHover / hint) |
 | `tools/index.js`, `tools/draw.js`, `tools/map-events.js` | реестр + `finishDraft`; `setTool`, `createFeature`, `commitDraft`; раздача событий карты и клавиатура |
@@ -79,3 +79,8 @@ npm run build       # dist/: бандл, config, styles с хешами в им�
 `tests/*.test.mjs` на `node:test`: arrow, basemap, measure, feature-schema (golden: `fixtures/props-golden.json` —
 выход прежних серверных нормализаторов, не перегенерировать), panel-binder (подделка DOM).
 E2E — `../backend/scripts/e2e.js`. Новая логика → юнит-тест для чистой функции, UI → `check(...)` в e2e.
+
+Сохранения текста, стиля и геометрии проходят через `edit/sync.js`: запросы одного объекта
+последовательны; ответы проверяют поколение правки, день и ссылку на актуальный объект.
+Тесты асинхронных сценариев используют `tests/module-harness.mjs` с подменой импортируемых
+зависимостей (исполняется настоящий код модуля, без DOM/MapLibre).

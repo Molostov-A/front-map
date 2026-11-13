@@ -1,17 +1,13 @@
 // События карты и клавиатура: раздача кликов инструментам (tools/index.js, tools/select.js),
 // общая механика черновика (курсор, ПКМ/двойной клик/Enter — завершить), перетаскивание узлов.
-import { api } from '../core/api.js';
-import { currentDay } from '../core/days.js';
-import { hooks } from '../core/hooks.js';
 import { canEdit } from '../core/session.js';
 import { map, state } from '../core/store.js';
-import { $, toast } from '../core/util.js';
+import { $ } from '../core/util.js';
 import { applyCoord } from '../edit/geometry.js';
 import { beginMove, setMoveMode } from '../edit/move-mode.js';
 import { select } from '../edit/selection.js';
 import { deleteSelected, putArrowGeometry } from '../edit/sync.js';
 import { refreshSources } from '../map/render.js';
-import { refreshDates } from '../ui/dates-panel.js';
 import { updateHint } from '../ui/hint.js';
 import { renderLayerList } from '../ui/layer-list.js';
 import { closeDelete, closeModal, deleteOpen, modalOpen } from '../ui/modals.js';
@@ -123,17 +119,7 @@ export function bindMapEvents() {
     if (!moved) return;
     const feat = state.features.find((f) => f.id === featureId);
     if (!feat) return;
-    const body = { geometry: feat.geometry, date: currentDay() };
-    if (g.type === 'tangent') body.properties = { ...feat.properties };
-    api.send('PUT', `/api/features/${featureId}`, body)
-      .then((upd) => {
-        const i = state.features.findIndex((f) => f.id === upd.id);
-        if (i >= 0) state.features[i] = upd;
-        refreshSources();
-        refreshDates();
-        renderLayerList();
-      })
-      .catch((err) => { toast('Ошибка: ' + err.message); hooks.reload().catch(() => {}); });
+    putArrowGeometry(feat).then(renderLayerList);
   });
 }
 
