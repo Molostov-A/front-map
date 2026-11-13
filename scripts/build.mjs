@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
+import { vendorPlugin } from './vendor-plugin.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -36,7 +37,7 @@ const result = await esbuild.build({
   minify: true,
   sourcemap: true,
   legalComments: 'none',
-  external: ['./vendor/*'],
+  plugins: [vendorPlugin(ROOT)],
   outdir: DIST,
   entryNames: '[name].[hash]',
   metafile: true,

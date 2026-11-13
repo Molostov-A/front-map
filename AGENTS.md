@@ -94,3 +94,9 @@ E2E — `../backend/scripts/e2e.js`. Новая логика → юнит-тес
 `map/render.js:scheduleRefreshSources(afterRefresh?)`: карта и измерения обновляются
 один раз на кадр. `refreshSources()` остаётся немедленным и отменяет ожидающий кадр.
 Планировщик `core/frame.js` тестируется с подставленными request/cancelAnimationFrame.
+
+Внешние vendor-импорты сборки нормализует `scripts/vendor-plugin.mjs` к `./vendor/…`:
+относительные пути вложенных исходников нельзя оставлять в итоговом бандле.
+`tests/build-paths.test.mjs` проверяет импорты при размещении в `/front-map/`.
+Ручная проверка сборки в браузере: Node 20 → `../tools/browser-preview.mjs`
+(из корня: `node tools/browser-preview.mjs`); временная БД, свободный порт.
