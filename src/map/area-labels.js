@@ -27,6 +27,8 @@ export function syncAreaLabels() {
     const el = marker.getElement();
     el.textContent = formatArea(polygonAreaKm2(g));
     applyAreaLabelStyle(el, f.properties);
+    marker.setOpacity(layer?.opacity ?? 1, (layer?.opacity ?? 1) * 0.2);
+    el.style.zIndex = String(state.layers.length - state.layers.findIndex((l) => l.id === f.layer_id));
     applyAreaLabelFit(el, g);
     marker.setLngLat(pt);
   }

@@ -6,6 +6,8 @@ import { canEdit, viewerVisibility } from '../core/session.js';
 import { state } from '../core/store.js';
 import { $, toast } from '../core/util.js';
 import { refreshSources } from '../map/render.js';
+import { moveLayer, openLayerCopy, previewLayerOpacity, saveLayerOpacity } from './layer-actions.js';
+export { moveLayer } from './layer-actions.js';
 import { promptModal } from './modals.js';
 
 export function countFeatures(layerId) {
@@ -27,6 +29,7 @@ export function renderLayerList() {
   box.innerHTML = '';
   for (const L of state.layers) {
     const item = document.createElement('div');
+    item.dataset.layerId = String(L.id);
     item.className = 'layer-item' + (L.id === state.activeLayerId ? ' active' : '') + (L.visible ? '' : ' hidden-layer');
 
     const sw = document.createElement('span');
@@ -86,6 +89,8 @@ export function renderLayerList() {
     item.append(main,
       visBtn,
       mk('↑', 'Выше', () => moveLayer(L, -1)),
+      mk('↓', 'Ниже', () => moveLayer(L, 1)),
+      mk('⧉', 'Копировать объекты на другой слой', () => openLayerCopy(L)),
       mk('✎', 'Переименовать / цвет', async () => {
         const r = await promptModal({ title: 'Слой', name: L.name, color: L.color });
         if (!r || !r.name.trim()) return;
@@ -98,6 +103,17 @@ export function renderLayerList() {
         catch (e) { toast('Ошибка: ' + e.message); }
       })
     );
+    const opacityRow = document.createElement('label'); opacityRow.className = 'layer-opacity';
+    const caption = document.createElement('span'); caption.textContent = 'Непрозрачность';
+    const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0'; slider.max = '100';
+    slider.value = String(Math.round((L.opacity ?? 1) * 100)); slider.setAttribute('aria-label', `Непрозрачность слоя ${L.name}`);
+    const output = document.createElement('output'); output.textContent = slider.value + '%';
+    opacityRow.onclick = (e) => e.stopPropagation();
+    slider.oninput = () => { previewLayerOpacity(L, slider.value); output.textContent = slider.value + '%'; };
+    slider.onchange = () => saveLayerOpacity(L);
+    opacityRow.append(caption, slider, output); item.appendChild(opacityRow);
+    const up = /** @type {HTMLButtonElement} */ (item.querySelector('[title="Выше"]')), down = /** @type {HTMLButtonElement} */ (item.querySelector('[title="Ниже"]'));
+    up.disabled = state.layers[0].id === L.id; down.disabled = state.layers[state.layers.length - 1].id === L.id;
     item.onclick = () => {
       state.activeLayerId = L.id;
       $('#active-layer-name').textContent = L.name;
@@ -107,17 +123,6 @@ export function renderLayerList() {
   }
   const active = state.layers.find((l) => l.id === state.activeLayerId);
   $('#active-layer-name').textContent = active ? active.name : '—';
-}
-
-export async function moveLayer(L, dir) {
-  const idx = state.layers.findIndex((l) => l.id === L.id);
-  const other = state.layers[idx + dir]; // список в порядке DESC: idx-1 выше по z
-  if (!other) return;
-  try {
-    await api.send('PATCH', `/api/layers/${L.id}`, { z_order: other.z_order });
-    await api.send('PATCH', `/api/layers/${other.id}`, { z_order: L.z_order });
-    await hooks.reload();
-  } catch (e) { toast('Ошибка: ' + e.message); }
 }
 
 export async function addLayer() {

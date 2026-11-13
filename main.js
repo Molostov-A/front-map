@@ -1,3 +1,4 @@
+import { bindLayerActions } from './src/ui/layer-actions.js';
 // Точка входа клиента: авторизация, создание карты, привязка UI, первая загрузка.
 // Логика — в src/ (core → map → ui → edit → tools); вызовы «снизу вверх» — через src/core/hooks.js.
 import * as maplibregl from './vendor/maplibre-gl.mjs';
@@ -109,6 +110,7 @@ hooks.unauthorized = showLogin;
   bindPolygonOperations();
   bindTimeline();
   bindDateComparison();
+  bindLayerActions();
   bindDatesPanel();
   bindMapEvents();
   bindKeyboard();

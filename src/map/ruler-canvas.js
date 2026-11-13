@@ -40,13 +40,15 @@ export function drawRulers() {
   rulerCtx.setTransform(rulerDpr, 0, 0, rulerDpr, 0, 0);
   rulerCtx.clearRect(0, 0, w, h);
 
-  for (const f of state.features) {
+  const ordered = [...state.features].sort((a, b) => state.layers.findIndex((l) => l.id === b.layer_id)
+    - state.layers.findIndex((l) => l.id === a.layer_id));
+  for (const f of ordered) {
     if (f.type !== 'ruler' || !f.geometry || f.geometry.type !== 'LineString') continue;
     const coords = f.geometry.coordinates;
     if (coords.length < 2) continue;
     const layer = state.layers.find((l) => l.id === f.layer_id);
     if (layer && !layer.visible) continue;
-    drawRulerPath(rulerCtx, coords, f.properties, { drawBody: false, preview: false });
+    drawRulerPath(rulerCtx, coords, f.properties, { drawBody: false, preview: false, layerOpacity: layer?.opacity ?? 1 });
   }
 
   const d = state.draft;
@@ -63,13 +65,16 @@ export function drawRulerPath(ctx, ptsLL, props, opts) {
   const o = opts || {};
   if (!ptsLL || ptsLL.length < 2) return;
   const p = normalizeStyle('ruler', props);
+
+  const layerOpacity = o.layerOpacity ?? 1;
+  ctx.save(); ctx.globalAlpha = layerOpacity;
   const multi = ptsLL.length >= 3;
-  if (multi) drawRulerPolygon(ctx, ptsLL, p);
+  if (multi) drawRulerPolygon(ctx, ptsLL, p, layerOpacity);
 
   if (o.drawBody) {
     const first = map.project(ptsLL[0]);
     ctx.save();
-    ctx.globalAlpha = clamp01(p.opacity);
+    ctx.globalAlpha = clamp01(p.opacity) * layerOpacity;
     ctx.beginPath();
     ctx.moveTo(first.x, first.y);
     for (let i = 1; i < ptsLL.length; i++) { const q = map.project(ptsLL[i]); ctx.lineTo(q.x, q.y); }
@@ -91,6 +96,7 @@ export function drawRulerPath(ctx, ptsLL, props, opts) {
     drawRulerOverlay(ctx, a, b, p, {
       drawBody: false,
       preview: o.preview,
+      layerOpacity,
       startMeters: acc,
       drawTotal: !multi && isLast
     });
@@ -109,6 +115,7 @@ export function drawRulerPath(ctx, ptsLL, props, opts) {
       drawRotatedText(ctx, formatArea(area), cp.x, cp.y, 0, p.labelColor || p.color, p.fontSize + 1);
     }
   }
+  ctx.restore();
 }
 
 export function pathMidpoint(ptsLL) {
@@ -141,10 +148,10 @@ export function hexToRgba(hex, a) {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
 }
 
-export function drawRulerPolygon(ctx, ptsLL, p) {
+export function drawRulerPolygon(ctx, ptsLL, p, layerOpacity = 1) {
   if (ptsLL.length < 3) return;
   ctx.save();
-  ctx.globalAlpha = clamp01(p.opacity);
+  ctx.globalAlpha = clamp01(p.opacity) * layerOpacity;
   const first = map.project(ptsLL[0]);
   ctx.beginPath();
   ctx.moveTo(first.x, first.y);
@@ -180,6 +187,7 @@ export function drawRotatedText(ctx, text, x, y, angle, color, fontSize, weight)
 // Механика отрисовки линейки портирована из examples/polygon-and-ruler-example.html.
 export function drawRulerOverlay(ctx, startLL, endLL, props, opts) {
   const p = normalizeStyle('ruler', props);
+
   const o = opts || {};
   const sS = map.project(startLL);
   const eS = map.project(endLL);
@@ -191,7 +199,7 @@ export function drawRulerOverlay(ctx, startLL, endLL, props, opts) {
   const lat = (startLL[1] + endLL[1]) / 2;
   const mpp = metersPerPixel(lat) || 1;
   const totalMeters = lenS * mpp;
-  const baseAlpha = clamp01(p.opacity);
+  const baseAlpha = clamp01(p.opacity) * (o.layerOpacity ?? 1);
 
   const nx = dxS / lenS, ny = dyS / lenS;
   const perpX = -ny, perpY = nx;

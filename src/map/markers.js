@@ -85,6 +85,9 @@ export function syncMarkers() {
     entry.el.classList.toggle('selected', f.id === state.selectedId);
     entry.el.style.cursor = (state.moveMode && state.selectedId === f.id) ? 'grab' : state.tool === 'eyedropper' ? 'copy' : 'pointer';
     applyTextStyle(entry.el, ls);
+    const opacity = ls.opacity * (layer?.opacity ?? 1);
+    entry.marker.setOpacity(opacity, opacity * 0.2);
+    entry.el.style.zIndex = String(state.layers.length - state.layers.findIndex((l) => l.id === f.layer_id));
     entry.marker.setLngLat(f.geometry.coordinates);
   }
   for (const [id, entry] of state.markers) {

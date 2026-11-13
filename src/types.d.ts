@@ -9,6 +9,7 @@ export interface Layer {
   id: number;
   name: string;
   z_order: number;
+  opacity: number;
   visible: boolean;
   color: string;
   created_at: string;
@@ -84,6 +85,7 @@ export interface AppState {
   activeLayerId: number | null;
   tool: string;
   selectedId: number | null;
+  selectedIds?: number[];
   draft: Draft | null;
   drag: Drag | null;
   /** Режим «Дорисовать» для выбранной стрелки. */

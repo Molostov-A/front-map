@@ -543,6 +543,15 @@
     <div id="calendar" class="hidden"></div>
 
     <button id="btn-compare" class="compare-toggle" type="button">Сравнить даты</button>
+    <section id="layer-copy" hidden role="dialog" aria-label="Копирование объектов слоя">
+      <div class="compare-head"><strong>Копировать объекты</strong><button id="layer-copy-close" aria-label="Закрыть копирование">✕</button></div>
+      <p>Из слоя: <b id="layer-copy-name"></b></p><p>Состояние на <b id="layer-copy-day"></b></p>
+      <label>Куда <select id="layer-copy-target"></select></label>
+      <label>Объекты <select id="layer-copy-scope"><option value="all">Все объекты слоя на эту дату</option>
+        <option id="layer-copy-selected" value="selected">Выбранные</option></select></label>
+      <p class="polygon-note">Копии получают новые id и историю с выбранного дня. Геометрия, текст и оформление сохраняются.</p>
+      <button id="layer-copy-apply">Копировать</button><p id="layer-copy-status" role="status"></p>
+    </section>
     <section id="date-comparison" hidden aria-label="Сравнение полигонов по датам">
       <div class="compare-head"><strong>Сравнение полигонов</strong><button id="compare-close" aria-label="Закрыть сравнение">✕</button></div>
       <div class="compare-dates"><label>С <input type="date" id="compare-from"></label>

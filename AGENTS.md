@@ -131,3 +131,12 @@ state.comparisonSettingsOpen показывает панель без включ
 применяют; Shift берёт другой источник, Esc выходит. style-transfer.mjs исключает
 текст/caption, nodeMeta, сглаживание и геометрические параметры стрелки. DOM-маркеры
 передают клик через hooks.featureClick, чтобы поддержать и выбор, и пипетку.
+
+
+Слои: ui/layer-actions.js — ползунок opacity, атомарный reorder, окно копирования.
+map/layer-opacity.js умножает исходные paint из metadata.baseOpacityPaint;
+DOM-маркеры используют Marker.setOpacity (прямой style.opacity перезапишет MapLibre).
+Линейка учитывает layerOpacity отдельно от свойств объекта. Копирование фиксирует
+день, сессию и выбранные id при открытии окна; ожидает hooks.flushSaves.
+Окна копирования/операций немодальные, переносятся за .compare-head;
+float-panels.bindDialogDrag ограничивает их границами карты. Высота fpanel учитывает top.

@@ -32,10 +32,33 @@ export function savePanels() {
   try { localStorage.setItem('panels', JSON.stringify(panels)); } catch (e) { /* ignore */ }
 }
 
+// Немодальные окна можно отодвинуть, чтобы выбрать объекты под ними на карте.
+export function bindDialogDrag(el) {
+  const head = el.querySelector('.compare-head');
+  let drag = null;
+  head.style.cursor = 'move';
+  head.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button, input, select')) return;
+    const r = el.getBoundingClientRect();
+    drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    head.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  head.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const parent = el.offsetParent.getBoundingClientRect();
+    el.style.left = Math.max(4, Math.min(parent.width - el.offsetWidth - 4, e.clientX - parent.left - drag.dx)) + 'px';
+    el.style.top = Math.max(4, Math.min(parent.height - el.offsetHeight - 4, e.clientY - parent.top - drag.dy)) + 'px';
+    el.style.right = 'auto';
+  });
+  head.addEventListener('pointerup', () => { drag = null; });
+  head.addEventListener('lostpointercapture', () => { drag = null; });
+}
+
 export function applyPanelRect(key) {
   const el = panelEls[key];
   const p = panels[key];
   el.classList.toggle('collapsed', !!p.collapsed);
+  el.style.maxHeight = `calc(100% - ${(p.top ?? 12) + 12}px)`;
   if (p.side) {
     el.dataset.side = p.side;
     el.style.left = '';

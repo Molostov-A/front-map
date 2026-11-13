@@ -3,6 +3,7 @@ import { map, state } from '../core/store.js';
 import { addOverlayLayers, bringOverlaysToFront, emptyFC, OVERLAY_DRAFT_FILL } from './overlays.js';
 import { renderComparison } from './date-comparison.js';
 import { renderPolygonPreview } from './polygon-preview.js';
+import { opacityPaint } from './layer-opacity.js';
 import { refreshSources } from './render.js';
 
 export const DASH_NAMES = ['solid', 'dotted', 'dashed', 'dashdot'];
@@ -15,6 +16,11 @@ export function rebuildStyle() {
   const srcs = Object.keys(map.getStyle().sources).filter((k) => k.startsWith('fmS-'));
   for (const k of srcs) map.removeSource(k);
 
+  const addLayer = (spec) => {
+    const layer = state.layers.find((l) => spec.source === `fmS-${l.id}`);
+    map.addLayer({ ...spec, metadata: { ...spec.metadata, baseOpacityPaint: spec.paint },
+      paint: opacityPaint(spec.paint, spec.type, layer?.opacity) });
+  };
   // снизу вверх: сервер отдаёт z_order DESC, реверсируем
   [...state.layers].reverse().forEach((L) => {
     map.addSource(`fmS-${L.id}`, { type: 'geojson', data: emptyFC() });
@@ -27,7 +33,7 @@ export function rebuildStyle() {
     const arrowStrokeWidth = ['coalesce', ['get', 'strokeWidth'], 2];
     const arrowStrokeOpacity = ['coalesce', ['get', 'strokeOpacity'], 1];
 
-    map.addLayer({ id: `fmL-fill-${L.id}`, type: 'fill', ...common,
+    addLayer({ id: `fmL-fill-${L.id}`, type: 'fill', ...common,
       filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['!=', ['get', 'hatch'], true]],
       paint: {
         'fill-color': ['coalesce', ['get', 'color'], color],
@@ -35,21 +41,21 @@ export function rebuildStyle() {
         'fill-outline-color': 'rgba(0,0,0,0)'
       } });
 
-    map.addLayer({ id: `fmL-hatch-${L.id}`, type: 'fill', ...common,
+    addLayer({ id: `fmL-hatch-${L.id}`, type: 'fill', ...common,
       filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['==', ['get', 'hatch'], true]],
       paint: {
         'fill-pattern': ['coalesce', ['get', 'hatchImg'], 'fm-blank'],
         'fill-opacity': ['coalesce', ['get', 'opacity'], 0.25]
       } });
 
-    map.addLayer({ id: `fmL-arrow-glow-${L.id}`, type: 'fill', ...common,
+    addLayer({ id: `fmL-arrow-glow-${L.id}`, type: 'fill', ...common,
       filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['==', ['get', 'type'], 'arrow'], ['==', ['get', 'glowEnabled'], true]],
       paint: {
         'fill-color': arrowGlowColor,
         'fill-opacity': ['*', arrowOpacity, 0.3]
       } });
 
-    map.addLayer({ id: `fmL-arrow-stroke-${L.id}`, type: 'line', ...common,
+    addLayer({ id: `fmL-arrow-stroke-${L.id}`, type: 'line', ...common,
       filter: ['all', ['==', ['geometry-type'], 'Polygon'], ['==', ['get', 'type'], 'arrow'], ['==', ['get', 'strokeEnabled'], true]],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
@@ -61,7 +67,7 @@ export function rebuildStyle() {
 
     // line-dasharray не поддерживает feature-выражения — отдельный слой на каждый тип обводки
     for (const dashName of DASH_NAMES) {
-      map.addLayer({ id: `fmL-outline-${L.id}-${dashName}`, type: 'line', ...common,
+      addLayer({ id: `fmL-outline-${L.id}-${dashName}`, type: 'line', ...common,
         filter: ['all',
           ['==', ['geometry-type'], 'Polygon'],
           ['==', ['get', 'type'], 'polygon'],
@@ -75,7 +81,7 @@ export function rebuildStyle() {
     }
 
     for (const dashName of DASH_NAMES) {
-      map.addLayer({ id: `fmL-line-${L.id}-${dashName}`, type: 'line', ...common,
+      addLayer({ id: `fmL-line-${L.id}-${dashName}`, type: 'line', ...common,
         filter: ['all',
           ['==', ['geometry-type'], 'LineString'],
           ['==', ['get', 'type'], 'line'],
@@ -90,7 +96,7 @@ export function rebuildStyle() {
     }
 
     // линейка: тело рисует MapLibre, деления и подписи — на оверлей-канве (drawRulers)
-    map.addLayer({ id: `fmL-ruler-${L.id}`, type: 'line', ...common,
+    addLayer({ id: `fmL-ruler-${L.id}`, type: 'line', ...common,
       filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'type'], 'ruler']],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
@@ -100,12 +106,12 @@ export function rebuildStyle() {
       } });
 
     // невидимая широкая линия — только для попадания клика/курсора
-    map.addLayer({ id: `fmL-rulerhit-${L.id}`, type: 'line', ...common,
+    addLayer({ id: `fmL-rulerhit-${L.id}`, type: 'line', ...common,
       filter: ['all', ['==', ['geometry-type'], 'LineString'], ['==', ['get', 'type'], 'ruler']],
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': 'rgba(0,0,0,0)', 'line-width': 16 } });
 
-    map.addLayer({ id: `fmL-circle-${L.id}`, type: 'circle', ...common,
+    addLayer({ id: `fmL-circle-${L.id}`, type: 'circle', ...common,
       filter: ['all', ['==', ['geometry-type'], 'Point'], ['!=', ['get', 'type'], 'label']],
       paint: {
         'circle-color': ['coalesce', ['get', 'color'], color],
