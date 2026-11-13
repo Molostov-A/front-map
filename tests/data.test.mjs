@@ -13,7 +13,7 @@ function setup(editor = true) {
       get: () => { const d = deferred(); gets.push(d); return d.promise; },
       send: () => { const d = deferred(); posts.push(d); return d.promise; }
     },
-    rebuildStyle: () => renders++, updateDatesPanel() {}, renderLayerList() {}, updateStylePanels() {}
+    resetPolygonOperations() {}, rebuildStyle: () => renders++, updateDatesPanel() {}, renderLayerList() {}, updateStylePanels() {}
   });
   return { ...mod, state, gets, posts, renders: () => renders, day: (d) => { day = d; } };
 }

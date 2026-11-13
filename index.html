@@ -277,6 +277,23 @@
         <label for="polygon-area-bg">Подложка</label>
         <input type="checkbox" id="polygon-area-bg" data-field="areaBg" checked>
       </div>
+      <section id="polygon-operations" hidden>
+        <div class="as-title">Операции с полигонами</div>
+        <div id="polygon-first" class="polygon-first"></div>
+        <div class="as-row"><label for="polygon-other">Полигон B</label><select id="polygon-other"></select></div>
+        <div class="as-row"><label for="polygon-operation-mode">Действие</label><select id="polygon-operation-mode">
+          <option value="union">Объединить A и B</option><option value="difference">Вырезать B из A</option>
+          <option value="reverse-difference">Вырезать A из B</option></select></div>
+        <div class="as-row"><label for="polygon-result">Результат</label><select id="polygon-result">
+          <option value="new">Новый полигон</option><option value="first">Сохранить как A</option>
+          <option value="second">Сохранить как B</option></select></div>
+        <label class="polygon-retain"><input type="checkbox" id="polygon-consume"> Убрать остальные исходники с этой даты</label>
+        <p class="polygon-note">Без галочки исходники сохраняются. При замене A или B его прежние даты остаются в истории.</p>
+        <div class="as-btns"><button id="polygon-preview" type="button">Предпросмотр</button>
+          <button id="polygon-apply" type="button" disabled>Применить</button>
+          <button id="polygon-preview-clear" type="button">Убрать подсветку</button></div>
+        <p id="polygon-operation-status" class="polygon-note" role="status"></p>
+      </section>
       <div class="as-btns">
         <button id="polygon-move" data-move="polygon" type="button">Переместить</button>
       </div>

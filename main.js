@@ -6,6 +6,8 @@ import { hooks } from './src/core/hooks.js';
 import { map, setMap } from './src/core/store.js';
 import { $, $$, diag } from './src/core/util.js';
 import { reload } from './src/data.js';
+import { applyPolygonOperation } from './src/edit/polygon-operations.js';
+import { bindPolygonOperations } from './src/ui/polygon-operations.js';
 import { beginMove } from './src/edit/move-mode.js';
 import { select, syncStyle } from './src/edit/selection.js';
 import { deleteSelected } from './src/edit/sync.js';
@@ -42,6 +44,7 @@ function bindToolbar() {
 hooks.select = select;
 hooks.beginMove = beginMove;
 hooks.reload = reload;
+hooks.polygonOperation = applyPolygonOperation;
 hooks.unauthorized = showLogin;
 
 (async function init() {
@@ -94,6 +97,7 @@ hooks.unauthorized = showLogin;
   bindBasemapSelect();
   bindToolbar();
   bindStylePanels();
+  bindPolygonOperations();
   bindTimeline();
   bindDatesPanel();
   bindMapEvents();

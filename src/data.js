@@ -4,6 +4,7 @@ import { currentDay } from './core/days.js';
 import { canEdit, viewerVisibility } from './core/session.js';
 import { state } from './core/store.js';
 import { rebuildStyle } from './map/style-layers.js';
+import { resetPolygonOperations } from './ui/polygon-operations.js';
 import { updateDatesPanel } from './ui/dates-panel.js';
 import { renderLayerList } from './ui/layer-list.js';
 import { updateStylePanels } from './ui/style-panels.js';
@@ -12,6 +13,7 @@ let loadGeneration = 0;
 let creatingLayer = null;
 
 export async function reload() {
+  resetPolygonOperations();
   const generation = ++loadGeneration;
   const day = currentDay();
   const active = () => generation === loadGeneration && day === currentDay();

@@ -69,3 +69,12 @@
 
 .maplibregl-ctrl-group button { background-color: #1b1e24; }
 .maplibregl-ctrl-attrib { font-size: 10px; }
+
+/* Геометрические операции: направления и выбор сохраняемого объекта. */
+#polygon-operations { margin-top: 12px; border-top: 1px solid #3a4250; padding-top: 8px; }
+#polygon-operations[hidden] { display: none; }
+#polygon-operations select { min-width: 0; width: 175px; }
+.polygon-first { color: #72adff; font-size: 12px; margin: 6px 0; }
+.polygon-note { color: #a8b4c8; font-size: 11px; line-height: 1.4; margin: 8px 0; }
+.polygon-retain { font-size: 11px; display: block; line-height: 1.5; }
+#polygon-operations .as-btns { flex-wrap: wrap; }

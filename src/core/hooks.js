@@ -10,6 +10,8 @@ export const hooks = {
   beginMove: (lngLat) => {},
   /** reload() — перезагрузить карту на текущий день (data.js), из UI и sync. */
   reload: async () => {},
+  /** @type {(context: any) => Promise<any>} */
+  polygonOperation: async (context) => null,
   /** unauthorized() — показать форму входа (ui/auth), из api при 401. */
   unauthorized: () => {}
 };

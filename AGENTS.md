@@ -106,3 +106,9 @@ polygon-clipping 0.15.7 собран в `vendor/polygon-clipping.mjs` коман
 `npm run vendor:polygons` (лицензии рядом). Polygon и MultiPolygon — один тип
 объекта polygon. Ручка хранит polygon/ring/index; редактирование первого узла
 обновляет замыкающий. После shared-правок запускать sync-shared.
+
+Операции полигонов: `ui/polygon-operations.js` управляет A/B/предпросмотром и
+выбором результата; `edit/polygon-operations.js` через hooks ждёт flushFeaturePuts
+и вызывает сервер. Подсветка — `map/polygon-preview.js` (fmO-poly-preview-*),
+восстанавливается при смене подложки. Выбор результата new/first/second и
+consume явный; кнопка применения доступна только после актуального предпросмотра.

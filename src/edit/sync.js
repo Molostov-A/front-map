@@ -47,15 +47,24 @@ export function scheduleArrowPut(f) {
   pendingPuts.set(key, entry);
 }
 
+function takePendingPut(id, day) {
+  const key = putKey(id, day), p = pendingPuts.get(key);
+  if (!p) return Promise.resolve();
+  clearTimeout(p.timer); pendingPuts.delete(key);
+  return queuePut(p.f, { properties: p.props, date: p.date }, p.revision, p.token);
+}
+
 export async function sendPendingPut(id, day = currentDay()) {
-  const key = putKey(id, day);
-  const p = pendingPuts.get(key);
-  if (!p) return;
-  clearTimeout(p.timer);
-  pendingPuts.delete(key);
-  try {
-    await queuePut(p.f, { properties: p.props, date: p.date }, p.revision, p.token);
-  } catch (e) { toast('Ошибка: ' + e.message); }
+  try { await takePendingPut(id, day); }
+  catch (e) { toast('Ошибка: ' + e.message); }
+}
+
+// Операции над несколькими объектами не начинаются после неудавшегося PUT.
+export async function flushFeaturePuts(ids) {
+  const work = [];
+  for (const p of [...pendingPuts.values()]) if (ids.includes(p.f.id)) work.push(takePendingPut(p.f.id, p.date));
+  for (const id of ids) if (inFlight.has(id)) work.push(inFlight.get(id));
+  await Promise.all(work);
 }
 
 export function cancelArrowPut(id, day) {

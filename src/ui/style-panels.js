@@ -5,6 +5,7 @@ import { FEATURE_TYPES } from '../../shared/feature-schema.mjs';
 import { activeSelected, selectedArrow, state, styleStateOf } from '../core/store.js';
 import { $, $$ } from '../core/util.js';
 import { applyPanelVisibility, panels } from './float-panels.js';
+import { renderPolygonOperations } from './polygon-operations.js';
 import { renderPanel } from './panel-binder.js';
 
 /** Панель стиля типа: `#<type>-style`. */
@@ -21,6 +22,7 @@ export function updateStylePanels() {
   renderArrowExtras();
   updateMeasurePanels();
   renderMoveButtons();
+  renderPolygonOperations();
   if (panels) applyPanelVisibility();
 }
 
