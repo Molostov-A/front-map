@@ -38,6 +38,7 @@ function queuePut(f, body, revision, token) {
 
 export function scheduleArrowPut(f) {
   if (!canEdit()) return;
+  hooks.mapChanged();
   const day = currentDay();
   const key = putKey(f.id, day);
   const prev = pendingPuts.get(key);
@@ -78,6 +79,7 @@ export function cancelArrowPut(id, day) {
 // Немедленный PUT текста/геометрии проходит через ту же очередь, что и стиль.
 export async function saveFeature(f, patch, day = currentDay()) {
   if (!canEdit()) return;
+  hooks.mapChanged();
   cancelArrowPut(f.id, day);
   const body = structuredClone({ properties: f.properties, ...patch, date: day });
   try { await queuePut(f, body, nextRevision(f.id), getToken()); }

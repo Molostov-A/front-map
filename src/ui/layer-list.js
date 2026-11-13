@@ -69,6 +69,7 @@ export function renderLayerList() {
     const visBtn = mk(L.visible ? '👁' : '🚫', 'Показать/скрыть', async () => {
       if (!canEdit()) { // viewer: видимость только локально, на сервер не пишем
         viewerVisibility.set(L.id, !L.visible);
+        hooks.mapChanged();
         L.visible = !L.visible;
         refreshSources();
         renderLayerList();

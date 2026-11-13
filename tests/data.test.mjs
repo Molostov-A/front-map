@@ -8,7 +8,7 @@ function setup(editor = true) {
   const gets = [], posts = [];
   const state = { layers: [], features: [], selectedId: null };
   const mod = loadModule('../src/data.js', {
-    state, currentDay: () => day, canEdit: () => editor, viewerVisibility: new Map([[1, false]]),
+    hooks: { mapChanged() {} }, state, currentDay: () => day, canEdit: () => editor, viewerVisibility: new Map([[1, false]]),
     api: {
       get: () => { const d = deferred(); gets.push(d); return d.promise; },
       send: () => { const d = deferred(); posts.push(d); return d.promise; }

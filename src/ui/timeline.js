@@ -19,7 +19,7 @@ export async function setDay(day) {
   closeCalendar();
   renderTimeline();
   updateHint();
-  try { await hooks.reload(); } catch (e) { toast('Ошибка: ' + e.message); }
+  try { await hooks.reload(); return true; } catch (e) { toast('Ошибка: ' + e.message); return false; }
 }
 
 /* сдвиг на соседний день */

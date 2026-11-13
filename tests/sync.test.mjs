@@ -15,7 +15,7 @@ function setup(askDelete = async () => null) {
     setTimeout: (fn) => { timers.set(++timer, fn); return timer; },
     clearTimeout: (id) => timers.delete(id), toast: (s) => errors.push(s),
     refreshSources() {}, refreshDates() {}, updateDatesPanel() {},
-    hooks: { reload: async () => {} }, askDelete
+    hooks: { mapChanged() {}, reload: async () => {} }, askDelete
   });
   return { ...mod, f, state, calls, timers, errors, setToken: (t) => { token = t; }, setDay: (d) => { day = d; } };
 }

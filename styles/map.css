@@ -78,3 +78,29 @@
 .polygon-note { color: #a8b4c8; font-size: 11px; line-height: 1.4; margin: 8px 0; }
 .polygon-retain { font-size: 11px; display: block; line-height: 1.5; }
 #polygon-operations .as-btns { flex-wrap: wrap; }
+
+/* Сравнение — отдельный инструмент чтения, доступен также viewer. */
+.compare-toggle { position: absolute; right: 14px; bottom: 32px; z-index: 4; }
+#date-comparison { position: absolute; right: 12px; bottom: 72px; z-index: 15;
+  width: min(310px, calc(100% - 40px)); max-height: calc(100% - 130px); overflow: auto;
+  background: #1b1e24f5; border: 1px solid #48536a; border-radius: 10px; padding: 14px;
+  color: #eaf0ff; box-shadow: 0 6px 25px #0008; }
+#date-comparison[hidden] { display: none; }
+.compare-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.compare-dates { display: flex; gap: 12px; margin-top: 12px; }
+.compare-dates label { flex: 1; font-size: 12px; }
+.compare-dates input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; }
+.compare-color-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 12px; }
+.compare-color-row strong { flex: 1; }
+.compare-color-row label { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #a8b4c8; }
+.compare-color-row input[type=color] { width: 34px; height: 25px; padding: 1px; }
+.compare-swatch { display: inline-block; width: 19px; height: 19px; border: 3px solid; border-radius: 4px; }
+.compare-area { font-size: 12px; margin: 5px 0 0 35px; color: #d7e4ff; }
+.compare-opacity { display: flex; flex-direction: column; gap: 4px; font-size: 12px; margin: 12px 0; }
+
+#date-comparison button, .compare-toggle {
+  background: #262b34; border: 1px solid #48536a; color: #eaf0ff;
+  border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 12px;
+}
+#date-comparison button:hover, .compare-toggle:hover { background: #354157; }
+#date-comparison button:disabled { opacity: .5; cursor: wait; }

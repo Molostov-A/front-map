@@ -1,4 +1,5 @@
 // Режим «Переместить»: перетаскивание выбранного объекта целиком.
+import { hooks } from '../core/hooks.js';
 import { canEdit } from '../core/session.js';
 import { map, state } from '../core/store.js';
 import { translateGeom } from './geometry.js';
@@ -12,6 +13,7 @@ export function beginMove(start) {
   if (!canEdit()) return;
   const f = state.features.find((x) => x.id === state.selectedId);
   if (!f || !f.geometry) return;
+  hooks.mapChanged();
   state.move = {
     featureId: f.id,
     start: [start[0], start[1]],

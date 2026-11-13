@@ -288,7 +288,7 @@
           <option value="new">Новый полигон</option><option value="first">Сохранить как A</option>
           <option value="second">Сохранить как B</option></select></div>
         <label class="polygon-retain"><input type="checkbox" id="polygon-consume"> Убрать остальные исходники с этой даты</label>
-        <p class="polygon-note">Без галочки исходники сохраняются. При замене A или B его прежние даты остаются в истории.</p>
+        <p class="polygon-note">Без галочки исходники сохраняются. Ранние даты остаются в истории. Исходник, существовавший только в этот день, при галочке удаляется полностью.</p>
         <div class="as-btns"><button id="polygon-preview" type="button">Предпросмотр</button>
           <button id="polygon-apply" type="button" disabled>Применить</button>
           <button id="polygon-preview-clear" type="button">Убрать подсветку</button></div>
@@ -525,6 +525,25 @@
     </div>
 
     <div id="calendar" class="hidden"></div>
+
+    <button id="btn-compare" class="compare-toggle" type="button">Сравнить даты</button>
+    <section id="date-comparison" hidden aria-label="Сравнение полигонов по датам">
+      <div class="compare-head"><strong>Сравнение полигонов</strong><button id="compare-close" aria-label="Закрыть сравнение">✕</button></div>
+      <div class="compare-dates"><label>С <input type="date" id="compare-from"></label>
+        <label>По <input type="date" id="compare-to"></label></div>
+      <p class="polygon-note">Основная карта — на дату «По». Выделяются изменения площади, а не оформления.</p>
+      <div class="compare-color-row"><span id="compare-added-swatch" class="compare-swatch"></span><strong>Добавлено</strong>
+        <label>Заливка<input type="color" id="compare-addedFill" aria-label="Заливка добавленных участков"></label>
+        <label>Контур<input type="color" id="compare-addedLine" aria-label="Контур добавленных участков"></label></div>
+      <div id="compare-added-area" class="compare-area">—</div>
+      <div class="compare-color-row"><span id="compare-removed-swatch" class="compare-swatch"></span><strong>Удалено</strong>
+        <label>Заливка<input type="color" id="compare-removedFill" aria-label="Заливка удалённых участков"></label>
+        <label>Контур<input type="color" id="compare-removedLine" aria-label="Контур удалённых участков"></label></div>
+      <div id="compare-removed-area" class="compare-area">—</div>
+      <label class="compare-opacity">Прозрачность заливки <input type="range" id="compare-opacity" min="10" max="80" value="50"></label>
+      <div class="as-btns"><button id="compare-run" type="button">Сравнить</button><button id="compare-off" type="button">Выключить</button></div>
+      <p id="compare-status" class="polygon-note" role="status">Выберите две даты.</p>
+    </section>
   </div>
 </div>
 

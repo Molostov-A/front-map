@@ -14,7 +14,7 @@ function context() {
   if (!a || !b || a.id === b.id) return null;
   return { firstId: a.id, secondId: b.id, day: currentDay(), operation: $('#polygon-operation-mode').value,
     result: $('#polygon-result').value, consume: $('#polygon-consume').checked,
-    expected: [a.geometry, b.geometry] };
+    expected: structuredClone([a.geometry, b.geometry]) };
 }
 const key = (c) => JSON.stringify(c);
 
@@ -46,7 +46,10 @@ export function renderPolygonOperations() {
 }
 
 export function resetPolygonOperations() {
+  const wasPrepared = !!prepared;
   prepared = null; clearPolygonPreview();
+  const button = $('#polygon-apply'); if (button) button.disabled = true;
+  if (wasPrepared && $('#polygon-operation-status')) $('#polygon-operation-status').textContent = 'Предпросмотр сброшен. Проверьте результат снова.';
 }
 
 export function bindPolygonOperations() {
@@ -67,7 +70,8 @@ export function bindPolygonOperations() {
   };
   $('#polygon-preview-clear').onclick = () => { prepared = null; clearPolygonPreview(); status.textContent = ''; renderPolygonOperations(); };
   $('#polygon-apply').onclick = async () => {
-    const c = context(); if (!c || busy || !canEdit() || key(c) !== prepared) return;
+    const c = context(); if (!c || busy || !canEdit()) return;
+    if (key(c) !== prepared) { resetPolygonOperations(); status.textContent = 'Контуры изменились. Повторите предпросмотр.'; return; }
     busy = true; renderPolygonOperations(); status.textContent = 'Сохраняю результат…';
     try {
       const feature = await hooks.polygonOperation(c);

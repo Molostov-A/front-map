@@ -47,3 +47,15 @@ test('сравнение по id: добавление, удаление, сти
   assert.equal(compare([before[0]],[{...before[0],properties:{color:'#ffffff'}}]).features.length,0);
   assert.equal(JSON.stringify([before,after]),snapshot);
 });
+
+
+test('сравнение: новое отверстие, несколько частей и разворот кольца',()=>{
+  const f=g=>({id:1,layer_id:1,type:'polygon',geometry:g});
+  const a=rect(0,0,4,4), b=operate('difference',a,rect(1,1,2,2));
+  const fc=compare([f(a)],[f(b)]);
+  assert.equal(fc.features.length,1); assert.equal(fc.features[0].properties.kind,'removed'); assert.equal(area(fc.features[0].geometry),4);
+  const split=operate('difference',a,rect(1,-1,1,6));
+  assert.equal(compare([f(a)],[f(split)]).features[0].properties.kind,'removed');
+  const reversed=structuredClone(a); reversed.coordinates[0].reverse();
+  assert.equal(compare([f(a)],[f(reversed)]).features.length,0);
+});

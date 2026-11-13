@@ -12,6 +12,9 @@ export const hooks = {
   reload: async () => {},
   /** @type {(context: any) => Promise<any>} */
   polygonOperation: async (context) => null,
+  /** Ожидание сохранений перед чтением снимков и сброс временных оверлеев при правке. */
+  flushSaves: async () => {},
+  mapChanged: () => {},
   /** unauthorized() — показать форму входа (ui/auth), из api при 401. */
   unauthorized: () => {}
 };

@@ -1,5 +1,6 @@
 // События карты и клавиатура: раздача кликов инструментам (tools/index.js, tools/select.js),
 // общая механика черновика (курсор, ПКМ/двойной клик/Enter — завершить), перетаскивание узлов.
+import { hooks } from '../core/hooks.js';
 import { canEdit } from '../core/session.js';
 import { map, state } from '../core/store.js';
 import { $ } from '../core/util.js';
@@ -97,6 +98,7 @@ export function bindMapEvents() {
       }
       return;
     }
+    hooks.mapChanged();
     state.drag = { featureId: state.selectedId, index: idx, ring: Number(hit.properties.ring), polygon: Number(hit.properties.polygon || 0), moved: false };
     map.getCanvas().style.cursor = 'grabbing';
   });
@@ -106,6 +108,7 @@ export function bindMapEvents() {
     e.preventDefault();
     const hit = map.queryRenderedFeatures(e.point, { layers: ['fmO-tangents'] })[0];
     if (!hit) return;
+    hooks.mapChanged();
     state.drag = { featureId: state.selectedId, type: 'tangent', index: Number(hit.properties.index), which: hit.properties.which, moved: false };
     map.getCanvas().style.cursor = 'grabbing';
   });

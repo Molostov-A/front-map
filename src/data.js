@@ -1,5 +1,6 @@
 // Загрузка карты на выбранный день и полная перерисовка UI.
 import { api } from './core/api.js';
+import { hooks } from './core/hooks.js';
 import { currentDay } from './core/days.js';
 import { canEdit, viewerVisibility } from './core/session.js';
 import { state } from './core/store.js';
@@ -14,6 +15,7 @@ let creatingLayer = null;
 
 export async function reload() {
   resetPolygonOperations();
+  hooks.mapChanged();
   const generation = ++loadGeneration;
   const day = currentDay();
   const active = () => generation === loadGeneration && day === currentDay();
