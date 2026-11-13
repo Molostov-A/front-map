@@ -220,6 +220,21 @@
     </div>
 
     <div id="polygon-style" class="panel-style">
+      <section id="polygon-comparison-settings">
+        <div class="as-title">Сравнение дат — оформление</div>
+        <p class="polygon-note">Настройки просмотра для всех полигонов. Обычный стиль объектов не меняется.</p>
+        <div class="comparison-palette-row"><strong>Добавлено</strong>
+          <label>Заливка<input type="color" id="compare-addedFill" aria-label="Заливка: Добавлено"></label>
+          <label>Контур<input type="color" id="compare-addedLine" aria-label="Контур: Добавлено"></label></div>
+        <div class="comparison-palette-row"><strong>Удалено</strong>
+          <label>Заливка<input type="color" id="compare-removedFill" aria-label="Заливка: Удалено"></label>
+          <label>Контур<input type="color" id="compare-removedLine" aria-label="Контур: Удалено"></label></div>
+        <div class="comparison-palette-row"><strong>Без изменений</strong>
+          <label>Заливка<input type="color" id="compare-unchangedFill" aria-label="Заливка: Без изменений"></label>
+          <label>Контур<input type="color" id="compare-unchangedLine" aria-label="Контур: Без изменений"></label></div>
+        <label class="compare-opacity">Прозрачность заливки<input type="range" id="compare-opacity" min="10" max="80" value="50"></label>
+        <button id="comparison-settings-close" type="button">Закрыть настройки сравнения</button>
+      </section>
       <div class="as-title">Заливка</div>
       <div class="as-row">
         <label for="polygon-color">Цвет</label>
@@ -277,21 +292,6 @@
         <label for="polygon-area-bg">Подложка</label>
         <input type="checkbox" id="polygon-area-bg" data-field="areaBg" checked>
       </div>
-      <section id="polygon-comparison-settings">
-        <div class="as-title">Сравнение дат — оформление</div>
-        <p class="polygon-note">Настройки просмотра для всех полигонов. Обычный стиль объектов не меняется.</p>
-        <div class="comparison-palette-row"><strong>Добавлено</strong>
-          <label>Заливка<input type="color" id="compare-addedFill" aria-label="Заливка: Добавлено"></label>
-          <label>Контур<input type="color" id="compare-addedLine" aria-label="Контур: Добавлено"></label></div>
-        <div class="comparison-palette-row"><strong>Удалено</strong>
-          <label>Заливка<input type="color" id="compare-removedFill" aria-label="Заливка: Удалено"></label>
-          <label>Контур<input type="color" id="compare-removedLine" aria-label="Контур: Удалено"></label></div>
-        <div class="comparison-palette-row"><strong>Без изменений</strong>
-          <label>Заливка<input type="color" id="compare-unchangedFill" aria-label="Заливка: Без изменений"></label>
-          <label>Контур<input type="color" id="compare-unchangedLine" aria-label="Контур: Без изменений"></label></div>
-        <label class="compare-opacity">Прозрачность заливки<input type="range" id="compare-opacity" min="10" max="80" value="50"></label>
-        <button id="comparison-settings-close" type="button">Закрыть настройки сравнения</button>
-      </section>
       <section id="polygon-operations" hidden>
         <div class="as-title">Операции с полигонами</div>
         <div id="polygon-first" class="polygon-first"></div>
