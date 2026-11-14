@@ -16,6 +16,7 @@ import { updateStylePanels, updateMeasurePanels } from '../ui/style-panels.js';
 import { closeCalendar } from '../ui/timeline.js';
 import { cancelDraft, ensureCanDraw, setTool } from './draw.js';
 import { DRAW_TOOLS, finishDraft } from './index.js';
+import { deepStateImportTool } from './deepstate-import.js';
 import { eyedropperTool } from './eyedropper.js';
 import { selectTool } from './select.js';
 
@@ -26,6 +27,7 @@ export function bindMapEvents() {
     if (state.moveMode) return;
     if (state.tool === 'select') { selectTool.onClick(e); return; }
     if (state.tool === 'eyedropper') { eyedropperTool.onClick(e); return; }
+    if (state.tool === 'deepstate-import') { deepStateImportTool.onClick(e); return; }
 
     if (!ensureCanDraw()) return;
     const tool = DRAW_TOOLS[state.tool];
@@ -72,6 +74,7 @@ export function bindMapEvents() {
     }
     if (state.tool === 'select') selectTool.onHover(e);
     else if (state.tool === 'eyedropper') eyedropperTool.onHover(e);
+    else if (state.tool === 'deepstate-import') deepStateImportTool.onHover();
     else map.getCanvas().style.cursor = 'crosshair';
   });
 
@@ -131,6 +134,7 @@ export function bindMapEvents() {
 // Клавиатура: Esc / Enter / Delete.
 export function bindKeyboard() {
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.tool === 'deepstate-import') { setTool('select'); return; }
     const tag = (/** @type {HTMLElement} */ (e.target).tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'textarea') return;
     if (modalOpen()) {
@@ -143,7 +147,7 @@ export function bindKeyboard() {
       return;
     }
     if (e.key === 'Escape') {
-      if (state.tool === 'eyedropper') { setTool('select'); return; }
+      if (state.tool === 'eyedropper' || state.tool === 'deepstate-import') { setTool('select'); return; }
       if (!$('#calendar').classList.contains('hidden')) { closeCalendar(); return; }
       if (state.moveMode) { setMoveMode(false); return; }
       if (state.appendArrow) {

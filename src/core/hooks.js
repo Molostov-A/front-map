@@ -14,6 +14,8 @@ export const hooks = {
   reload: async () => {},
   /** @type {(context: any) => Promise<any>} */
   polygonOperation: async (context) => null,
+  /** @type {(enabled: boolean) => void} */
+  importMode: (enabled) => {},
   /** Ожидание сохранений перед чтением снимков и сброс временных оверлеев при правке. */
   flushSaves: async () => {},
   mapChanged: () => {},

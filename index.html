@@ -46,6 +46,7 @@
     <div class="fpanel-head">
       <span class="fpanel-title">Слои</span>
       <div class="fpanel-actions">
+        <button class="icon-btn" id="btn-deepstate" title="Импорт DeepState" aria-label="Импорт DeepState">DS</button>
         <button class="icon-btn" id="add-layer" title="Новый слой">+</button>
         <button class="icon-btn fp-collapse" title="Свернуть">▾</button>
       </div>
@@ -548,6 +549,24 @@
     <div id="calendar" class="hidden"></div>
 
     <button id="btn-compare" class="compare-toggle" type="button">Сравнить даты</button>
+    <section id="deepstate-import" hidden role="dialog" aria-label="Импорт DeepState из GeoJSON">
+      <div class="compare-head"><strong>Импорт DeepState</strong><button id="ds-close" aria-label="Закрыть импорт">✕</button></div>
+      <p class="polygon-note">Загрузите полученный вами GeoJSON-снимок в WGS84. Импорт производится только в отдельный слой DeepState.</p>
+      <label class="ds-field">Файл GeoJSON<input id="ds-file" type="file" accept=".geojson,.json,application/geo+json,application/json"></label>
+      <label class="ds-field">Контур<select id="ds-contour" aria-label="Контур из файла"></select></label>
+      <p id="ds-details" class="polygon-note"></p>
+      <label class="ds-field">Дата данных DeepState<input id="ds-source-day" type="date"></label>
+      <p>День записи на карте: <b id="ds-record-day"></b> (меняется календарём)</p>
+      <label class="ds-field">Действие<select id="ds-mode"><option value="new">Создать новый полигон</option>
+        <option value="update">Обновить существующий полигон слоя DeepState</option></select></label>
+      <div class="as-btns"><button id="ds-preview">Предпросмотр</button><button id="ds-fit">Показать контур</button></div>
+      <p class="polygon-note">Голубой пунктир — новый контур. При обновлении геометрия заменяется полностью; стиль и прошлые версии сохраняются.</p>
+      <label id="ds-click-row" hidden><input id="ds-click-apply" type="checkbox"> Применить контур кликом по полигону на карте</label>
+      <button id="ds-create">Импортировать новым полигоном</button>
+      <p id="ds-status" class="polygon-note" role="status"></p>
+      <p id="ds-last-import" class="polygon-note"></p>
+      <a href="https://deepstatemap.live/" target="_blank" rel="noopener noreferrer">Источник: DeepStateMap</a>
+    </section>
     <section id="layer-copy" hidden role="dialog" aria-label="Копирование объектов слоя">
       <div class="compare-head"><strong>Копировать объекты</strong><button id="layer-copy-close" aria-label="Закрыть копирование">✕</button></div>
       <p>Из слоя: <b id="layer-copy-name"></b></p><p>Состояние на <b id="layer-copy-day"></b></p>

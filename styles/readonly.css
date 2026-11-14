@@ -6,3 +6,5 @@ body.readonly .panel-style .as-row:not([id$="-length-row"]):not([id$="-area-row"
 body.readonly .panel-style .as-checks, body.readonly .panel-style .as-btns,
 body.readonly .panel-style .as-seg, body.readonly #pnl-dates input,
 body.readonly #pnl-dates button { pointer-events: none; opacity: .6; }
+
+body.readonly #btn-deepstate, body.readonly #deepstate-import { display: none; }

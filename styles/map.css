@@ -126,3 +126,18 @@
 .polygon-second { color: #ffad33; margin: 8px 0; }
 #polygon-operations button:disabled, #layer-copy button:disabled { opacity: .4; cursor: default; }
 @media (max-width: 700px) { #polygon-operations { left: 12px; top: 110px; } }
+
+#deepstate-import { position: absolute; left: 310px; top: 65px; z-index: 16; box-sizing: border-box;
+  width: min(370px, calc(100% - 24px)); max-height: calc(100% - 80px); overflow: auto;
+  background: #1b1e24f5; color: #eaf0ff; border: 1px solid #48536a; border-radius: 10px; padding: 14px;
+  box-shadow: 0 6px 25px #0008; font-size: 12px; }
+#deepstate-import[hidden], #ds-click-row[hidden], #ds-create[hidden] { display: none; }
+#deepstate-import .ds-field { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; }
+#deepstate-import input:not([type=checkbox]), #deepstate-import select { width: 100%; box-sizing: border-box; min-width: 0; }
+#deepstate-import button, #deepstate-import input, #deepstate-import select { background: #262b34;
+  color: #eaf0ff; border: 1px solid #48536a; border-radius: 5px; padding: 5px; }
+#deepstate-import button { cursor: pointer; }
+#deepstate-import button:disabled { opacity: .4; cursor: default; }
+#ds-click-row { display: block; padding: 10px 0; color: #67e8f9; line-height: 1.6; }
+#deepstate-import a { color: #67e8f9; }
+@media (max-width: 700px) { #deepstate-import { left: 12px; top: 100px; max-height: calc(100% - 120px); } }

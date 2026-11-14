@@ -1,6 +1,7 @@
-import { bindLayerActions } from './src/ui/layer-actions.js';
 // Точка входа клиента: авторизация, создание карты, привязка UI, первая загрузка.
 // Логика — в src/ (core → map → ui → edit → tools); вызовы «снизу вверх» — через src/core/hooks.js.
+import { bindDeepStateImport, resetDeepStateImport } from './src/ui/deepstate-import.js';
+import { bindLayerActions } from './src/ui/layer-actions.js';
 import * as maplibregl from './vendor/maplibre-gl.mjs';
 import { basemapById } from './basemaps.mjs';
 import { hooks } from './src/core/hooks.js';
@@ -49,11 +50,15 @@ function bindToolbar() {
 
 // Хуки для вызовов «снизу вверх» по слоям (см. src/core/hooks.js).
 hooks.select = select;
-hooks.featureClick = (id, shift) => state.tool === 'eyedropper' ? pickAppearance(id, shift) : select(id, shift);
+hooks.featureClick = (id, shift) => {
+  if (state.tool === 'deepstate-import') return;
+  if (state.tool === 'eyedropper') pickAppearance(id, shift); else select(id, shift);
+};
 hooks.beginMove = beginMove;
 hooks.reload = reload;
 hooks.flushSaves = () => flushFeaturePuts(state.features.map((f) => f.id));
-hooks.mapChanged = () => { resetDateComparison(); resetPolygonOperations(); };
+hooks.mapChanged = () => { resetDateComparison(); resetPolygonOperations(); resetDeepStateImport(); };
+hooks.importMode = (enabled) => setTool(enabled ? 'deepstate-import' : 'select');
 hooks.polygonOperation = applyPolygonOperation;
 hooks.unauthorized = showLogin;
 
@@ -111,6 +116,7 @@ hooks.unauthorized = showLogin;
   bindTimeline();
   bindDateComparison();
   bindLayerActions();
+  bindDeepStateImport();
   bindDatesPanel();
   bindMapEvents();
   bindKeyboard();
